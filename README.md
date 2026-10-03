@@ -75,8 +75,14 @@ GA_ID = G-XXXXXXXXXX
 /us-ebay-fee-calculator        → 美国站
 /ca-ebay-fee-calculator        → 加拿大站
 /uk-ebay-fee-calculator        → 英国站
+/about  /privacy  /contact     → 静态页（AdSense 审核需要，不进 sitemap）
 /sitemap.xml  /robots.txt      → 收录用
+/ads.txt                       → 设置 ADSENSE_CLIENT 后生成
 ```
+
+静态页由 `src/ui/static-pages.js` 生成。**故意不放进 sitemap** —— sitemap 只保留工具页，避免稀释。
+
+Contact 页邮箱用 JS 拼接渲染，HTML 源码里不含明文邮箱（防爬取）。如需改地址，搜 `static-pages.js` 里的 `u="hello"`。
 
 每个计算器页顶部有面包屑：回首页 + 同族站点快速切换。
 

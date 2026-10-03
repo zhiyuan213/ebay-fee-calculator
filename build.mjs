@@ -7,6 +7,7 @@
  */
 import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync } from "node:fs";
 import { flagDefs, flagUse } from "./src/ui/flags.js";
+import { buildStaticPages } from "./src/ui/static-pages.js";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -332,11 +333,32 @@ ${flagDefs(SITES.map((x) => x.cfg))}
 <header><h1>eBay Fee Calculators</h1><p>Work out what eBay takes and what you actually keep.</p></header>
 <div class="wrap">
   <div class="card"><h2>Calculators</h2><ul class="xlinks">${cards}</ul></div>
+
+  <footer>
+    <a href="/about">About</a> · <a href="/privacy">Privacy</a> · <a href="/contact">Contact</a>
+    <div class="fnote">Free eBay fee calculators · No sign-up · Your data stays in your browser</div>
+  </footer>
 </div>
 </body>
 </html>`;
   writeFileSync(join(__dirname, "dist", "index.html"), index, "utf8");
   console.log("✓ index.html");
+
+  // About / Privacy / Contact
+  const updated = SITES[0] && R(`src/config/${SITES[0].cfg}.js`) ? null : null;
+  const docs = buildStaticPages({
+    BASE: B,
+    flagDefs: flagDefs([]),
+    styles: R("src/ui/styles.css"),
+    GA: gaSnippet(),
+    ADS: adsSnippet(),
+    updated: "October 2026",
+  });
+  for (const [slug, html] of Object.entries(docs)) {
+    mkdirSync(join(__dirname, "dist", slug), { recursive: true });
+    writeFileSync(join(__dirname, "dist", slug, "index.html"), html, "utf8");
+    console.log(`✓ ${slug}/index.html`);
+  }
 
   // sitemap.xml
   const urls = [`${B}/`, ...SITES.map((x) => `${B}/${x.slug}`)];

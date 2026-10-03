@@ -75,3 +75,6 @@ footer{text-align:center;font-size:12.5px;color:var(--mut);padding:20px 16px 0}
   box-shadow:0 1px 3px rgba(16,24,40,.07)}
 .backhome a:hover{background:#f0f7ff;border-color:#b9d4f0}
 .backhome .arrow{font-size:16px;line-height:1}
+footer a{color:var(--brand)}
+footer a:hover{text-decoration:underline}
+.fnote{margin-top:8px;font-size:12px}

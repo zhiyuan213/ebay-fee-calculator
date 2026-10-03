@@ -151,6 +151,15 @@ for (const rel of files) {
     check('底部按钮 href 有效', !!href && href !== '#', href || '无');
   }
 
+  // 7.6 页脚 About / Privacy / Contact —— AdSense 审核会看
+  const footLinks = await page.$$eval('footer a', (a) =>
+    a.map((x) => ({ t: x.textContent.trim(), h: x.getAttribute('href') })));
+  const need = ['About', 'Privacy', 'Contact'];
+  for (const n of need) {
+    const hit = footLinks.find((l) => l.t === n);
+    check(`页脚有 ${n} 链接`, !!hit && !!hit.h && hit.h !== '#', hit ? hit.h : '无');
+  }
+
   // 8. 内链（矩阵集群）
   const xlinks = await page.$$eval('.xlinks a', (a) => a.map((x) => x.getAttribute('href')));
   check('有同族工具内链', xlinks.length >= 1, xlinks.join(' '));
@@ -204,6 +213,45 @@ console.log('\n===== dist 静态资源 =====');
 for (const f of ['index.html', 'sitemap.xml', 'robots.txt']) {
   check(`存在 ${f}`, fs.existsSync(path.join(__dirname, 'dist', f)));
 }
+// 静态页：About / Privacy / Contact
+const DOCS = [
+  { slug: 'about', must: ['About', 'eBay'], noGa: false },
+  { slug: 'privacy', must: ['Privacy', 'Google Analytics', 'AdSense'], noGa: false },
+  { slug: 'contact', must: ['Contact'], noGa: false },
+];
+for (const d of DOCS) {
+  const fp = path.join(__dirname, 'dist', d.slug, 'index.html');
+  if (!fs.existsSync(fp)) { check(`存在 ${d.slug} 页`, false, '未生成'); continue; }
+  check(`存在 ${d.slug} 页`, true);
+  const dp = await browser.newPage();
+  const errs = [];
+  dp.on('pageerror', (e) => errs.push(String(e)));
+  await dp.goto('file://' + fp);
+  await dp.waitForTimeout(250);
+  const txt = await dp.textContent('body');
+  check(`${d.slug} 含关键内容`, d.must.every((m) => txt.includes(m)),
+    d.must.filter((m) => !txt.includes(m)).join(',') || '齐全');
+  check(`${d.slug} 无 JS 错误`, errs.length === 0, errs.join('|') || '无');
+  const back = await dp.$('.backhome a');
+  check(`${d.slug} 有回首页入口`, back !== null);
+  await dp.close();
+}
+
+// contact 页邮箱必须由 JS 渲染（防爬虫），且渲染后确实存在
+{
+  const fp = path.join(__dirname, 'dist', 'contact', 'index.html');
+  if (fs.existsSync(fp)) {
+    const raw = fs.readFileSync(fp, 'utf8');
+    check('contact 邮箱未硬编码在 HTML 中（防抓取）', !/[a-z0-9._-]+@basakit\.com/.test(raw));
+    const cp = await browser.newPage();
+    await cp.goto('file://' + fp);
+    await cp.waitForTimeout(300);
+    const mail = await cp.textContent('#m');
+    check('contact 邮箱 JS 渲染后可见', /@basakit\.com/.test(mail || ''), (mail || '').trim());
+    await cp.close();
+  }
+}
+
 // ads.txt：AdSense 站点验证与广告合规都需要，且必须在根路径
 const adsTxtPath = path.join(__dirname, 'dist', 'ads.txt');
 if (fs.existsSync(adsTxtPath)) {
