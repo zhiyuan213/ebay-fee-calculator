@@ -1,0 +1,186 @@
+/**
+ * 构建脚本 —— 零依赖
+ * 把 ES module 源码拼成一个 IIFE 注入 HTML 模板，每个站点输出一个单文件 HTML
+ *
+ * 用法：node build.mjs
+ * 新增站点：在 SITES 里加一行
+ */
+import { readFileSync, writeFileSync } from "node:fs";
+import { fileURLToPath } from "node:url";
+import { dirname, join } from "node:path";
+
+const __dirname = dirname(fileURLToPath(import.meta.url));
+const R = (p) => readFileSync(join(__dirname, p), "utf8");
+
+/* ---------- 站点清单 ---------- */
+/**
+ * 站点 canonical 域名
+ * 部署前用环境变量注入真实域名，例如：
+ *   SITE_DOMAIN=https://yourdomain.com node build.mjs
+ * 未设置时回落到 example.com 占位（不影响本地运行，上线前必须替换）
+ */
+const BASE = (process.env.SITE_DOMAIN || "https://example.com").replace(/\/$/, "");
+const dom = (slug) => `${BASE}/${slug}`;
+
+const SITES = [
+  {
+    cfg: "us",
+    out: "us-ebay-fee-calculator.html",
+    domain: dom("us-ebay-fee-calculator"),
+    title: "US eBay Fee Calculator — Final Value Fees & Net Profit (2026)",
+    h1: "US eBay Fee Calculator",
+    sub: "Calculate eBay final value fees, per-order fees and your real net profit — before you list.",
+    desc: "Free US eBay fee calculator. Calculate eBay final value fees, per-order fees, promoted listing costs and your real net profit. Bulk calculation and CSV export included.",
+    faq: "How eBay fees work in 2026",
+  },
+  {
+    cfg: "uk",
+    out: "uk-ebay-fee-calculator.html",
+    domain: dom("uk-ebay-fee-calculator"),
+    title: "UK eBay Fee Calculator — FVF, VAT & Net Profit (2026)",
+    h1: "UK eBay Fee Calculator",
+    sub: "Work out eBay.co.uk final value fees, the per-order charge, VAT on fees and what you actually keep.",
+    desc: "Free UK eBay fee calculator for eBay.co.uk sellers. Final value fees by category, per-order fee, regulatory operating fee, 20% VAT on fees and true net profit. Private and business seller rates.",
+    faq: "How eBay UK fees work in 2026",
+  },
+];
+
+/* ---------- 源码处理：剥离模块语法 ---------- */
+function strip(src) {
+  return src
+    .replace(/^\s*import\s+[\s\S]*?from\s+["'][^"']+["'];?\s*$/gm, "")
+    .replace(/^\s*export\s+default\s+/gm, "const __unused_default__ = ")
+    .replace(/^\s*export\s+/gm, "");
+}
+
+const coreCalc = strip(R("src/core/calc.js"));
+const coreFmt = strip(R("src/core/format.js"));
+const uiApp = strip(R("src/ui/app.js"));
+
+const APP_BUNDLE = `(function(){\n${coreCalc}\n${coreFmt}\n${uiApp}\ninit();\n})();`;
+
+const CSS = R("src/ui/styles.css");
+const TPL = R("src/ui/template.html");
+
+/* ---------- FAQ 正文 ---------- */
+const FAQ = {
+  us: {
+    body: `
+    <p class="lead-sm">Under eBay Managed Payments there is no separate PayPal charge. eBay bundles marketplace commission and payment processing into a single <b>final value fee</b>, calculated on the total amount the buyer pays — item price plus shipping — plus a flat per-order fee.</p>
+    <ul style="margin:10px 0 0 20px;font-size:14px;color:#475569">
+      <li><b>Final value fee:</b> 13.25% for most categories on the total sale up to $7,500. The portion above $7,500 drops to 2.35%.</li>
+      <li><b>Per-order fee:</b> $0.30 per order, rising to $0.40 on orders under $10.</li>
+      <li><b>Regulatory operating fee:</b> 0.35% for business sellers.</li>
+      <li><b>International fee:</b> an extra 1.65% when the buyer or delivery address is outside the US.</li>
+      <li><b>Insertion fee:</b> 250 free listings per month, then $0.35 each.</li>
+      <li><b>Promoted Listings:</b> whatever ad rate you set, charged only when the item sells through the ad.</li>
+    </ul>`,
+    items: [
+      ["Does eBay charge a fee on shipping?",
+       "Yes. The final value fee is calculated on the total amount the buyer pays, which includes buyer-paid shipping. A $50 item with $8 shipping is charged on $58, not $50."],
+      ["How much does eBay take from a $100 sale?",
+       "For most categories: 13.25% of $100 is $13.25, plus the $0.30 per-order fee, plus a 0.35% regulatory fee for business sellers. Roughly $13.90 total, leaving about $86.10 before your item and shipping costs."],
+      ["Is selling cheap items on eBay worth it?",
+       "Below about $8–$10 the flat per-order fee weighs heavily: $0.40 on a $5 item is another 8% on top of the percentage fee. This is why low-priced items often fail to make money on eBay."],
+      ["Does an eBay Store subscription save money?",
+       "It reduces the final value fee in most categories and raises your free listing allowance. It usually pays off once monthly sales reach the low thousands of dollars, or once you exceed 250 listings a month."],
+      ["How accurate are these numbers?",
+       "This is an estimate based on published eBay US rates for 2026. Category rates vary and eBay adjusts its fee schedule periodically. Always confirm the exact rate for your category in Seller Hub before setting prices."],
+    ],
+  },
+  uk: {
+    body: `
+    <p class="lead-sm">eBay UK runs two completely separate fee tracks, and which one you are on changes everything. Since October 2024, private sellers resident in the UK pay <b>no final value fee</b> on most categories. Business sellers pay a category rate plus a per-order charge, a regulatory operating fee, and 20% VAT on top of every fee.</p>
+    <ul style="margin:10px 0 0 20px;font-size:14px;color:#475569">
+      <li><b>Final value fee:</b> set by category, most major categories between 9.9% and 12.9% excluding VAT.</li>
+      <li><b>Per-order fee:</b> 30p on orders of £10 or less, 40p on orders over £10.</li>
+      <li><b>Regulatory operating fee:</b> 0.35% of the total sale.</li>
+      <li><b>VAT:</b> 20% added to every fee above. Reclaimable if you are VAT-registered.</li>
+      <li><b>International fee:</b> 1.05% to 2.0% depending on buyer region for business sellers; 3% for private sellers shipping overseas.</li>
+      <li><b>Insertion fee:</b> free allowance each month, then 35p per listing.</li>
+    </ul>`,
+    items: [
+      ["Do private sellers really pay nothing on eBay UK?",
+       "For UK-resident private sellers, yes, on most categories — no final value fee and no regulatory operating fee when the item sells. Motors categories are excluded, and fees still apply if you exceed your monthly listing allowance, add optional upgrades, or deliver to an overseas address."],
+      ["Does the fee apply to postage as well?",
+       "Yes for business sellers. The final value fee is charged on the total amount the buyer pays, which includes the postage you charged. A £25 item with £4 postage is charged on £29."],
+      ["Why is there a VAT line on my fees?",
+       "eBay adds 20% VAT to every business fee — final value fee, per-order fee, regulatory fee and promoted listings. If you are VAT-registered you reclaim it on your return, so untick the VAT box to see your true cost. If you are not registered, it is a real 20% on top."],
+      ["Does an eBay Shop subscription lower my fees in the UK?",
+       "No. Unlike eBay US, a UK Shop subscription does not reduce your final value fee rate. Its value is in extra listing credits, storefront branding and Promotions Manager access."],
+      ["How much does eBay UK take from a £30 sale?",
+       "For a business seller in a 12.9% category including £3.50 postage: roughly £4.30 in fees including VAT, leaving about £29.20 before your item and postage costs. A UK private seller on the same sale keeps the full amount."],
+      ["How accurate are these numbers?",
+       "This is an estimate based on published eBay UK rates for 2026. Category rates vary, several changed in February 2026, and eBay updates its schedule periodically. Always confirm your exact rate on eBay.co.uk before pricing stock."],
+    ],
+  },
+};
+
+/* ---------- 构建 ---------- */
+function build(site) {
+  const cfgModule = R(`src/config/${site.cfg}.js`);
+  const cfgObj = eval(
+    "(function(){" +
+      cfgModule.replace(/^\s*export\s+default\s+/m, "return ") +
+      "})()"
+  );
+  const cfg = cfgObj;
+
+  let html = TPL;
+  const rep = (k, v) => { html = html.replaceAll(k, v); };
+
+  rep("__LANG__", cfg.locale);
+  rep("__TITLE__", site.title);
+  rep("__DESC__", site.desc);
+  rep("__CANONICAL__", site.domain);
+  rep("__CUR__", cfg.currency);
+  rep("__H1__", site.h1);
+  rep("__SUB__", site.sub);
+  rep("__UPDATED__", cfg.updated);
+  rep("__SYM__", cfg.symbol);
+  rep("__SHIPCH_LABEL__", cfg.copy.shipLabel);
+  rep("__COST_LABEL__", cfg.copy.costLabel);
+  rep("__SHIPCOST_LABEL__", cfg.copy.shipCostLabel);
+  rep("__STORELABEL__", cfg.id === "uk" ? "Shop subscription" : "Store subscription");
+  rep("__FAQH2__", site.faq);
+
+  // VAT 勾选框（仅英国）
+  rep("__VATBOX__", cfg.vatOnFees
+    ? `<div class="vat-box"><input type="checkbox" id="s_vat" checked><label for="s_vat" style="margin:0">Include ${cfg.vatOnFees.rate}% VAT on fees <span class="hint">untick if you are VAT-registered</span></label></div>`
+    : "");
+
+  // 反向定价区：卖家类型（两国都有）+ VAT（仅英国）
+  // 反向算价必须用与校验一致的开关，否则推出的价格预留不足、利润达不到目标
+  rep("__RBIZBOX__", cfg.sellerTypes && cfg.sellerTypes.length > 1
+    ? `<div><label>Seller type</label><select id="r_biz"></select></div>`
+    : "");
+  rep("__RVATBOX__", cfg.vatOnFees
+    ? `<div><label>Include ${cfg.vatOnFees.rate}% VAT on fees</label><select id="r_vat"><option value="1">Yes</option><option value="0">No (VAT-registered)</option></select></div>`
+    : "");
+
+  // 站点专属提示
+  rep("__NOTES__", cfg.notes
+    ? `<div class="site-notes"><h2>Things that catch UK sellers out</h2><ul>${cfg.notes.map((n) => `<li>${n}</li>`).join("")}</ul></div>`
+    : "");
+
+  // FAQ 正文
+  const f = FAQ[site.cfg];
+  const faqHtml = f.body +
+    '<div style="margin-top:18px">' +
+    f.items.map(([q, a]) => `<details><summary>${q}</summary><p>${a}</p></details>`).join("") +
+    "</div>";
+  rep("__FAQBODY__", faqHtml);
+
+  rep("__CSS__", CSS);
+  rep("__CONFIG__", `window.__CFG__ = ${JSON.stringify(cfg, null, 0)};`);
+  rep("__APP__", APP_BUNDLE);
+  rep("__BOOTSTRAP__", "");
+
+  const out = join(__dirname, "dist", site.out);
+  writeFileSync(out, html, "utf8");
+  const kb = (Buffer.byteLength(html, "utf8") / 1024).toFixed(1);
+  console.log(`✓ ${site.out}  (${kb} KB)`);
+}
+
+SITES.forEach(build);
+console.log("\ndist/ 已生成，可直接部署到 Cloudflare Pages / Vercel。");

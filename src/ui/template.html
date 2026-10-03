@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="__LANG__">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>__TITLE__</title>
+<meta name="description" content="__DESC__">
+<link rel="canonical" href="__CANONICAL__">
+<script type="application/ld+json">
+{"@context":"https://schema.org","@type":"WebApplication","name":"__TITLE__",
+ "applicationCategory":"FinanceApplication","operatingSystem":"Any",
+ "browserRequirements":"Requires JavaScript","offers":{"@type":"Offer","price":"0","priceCurrency":"__CUR__"}}
+</script>
+<style>
+__CSS__
+</style>
+</head>
+<body>
+
+<header>
+  <h1>__H1__</h1>
+  <p>__SUB__</p>
+  <span class="badge">Fee rates updated: __UPDATED__</span>
+</header>
+
+<div class="wrap">
+
+  <div class="card">
+    <div class="tabs">
+      <button class="tab on" data-t="single">Single item</button>
+      <button class="tab" data-t="bulk">Bulk (paste list)</button>
+      <button class="tab" data-t="reverse">Reverse pricing</button>
+    </div>
+
+    <!-- 单件 -->
+    <div id="t-single">
+      <div class="grid">
+        <div><label>Item selling price (__SYM__)</label><input type="number" id="s_price" value="55" step="0.01" min="0"><div class="hint">What the buyer pays for the item</div></div>
+        <div><label>__SHIPCH_LABEL__ (__SYM__)</label><input type="number" id="s_shipcharge" value="8" step="0.01" min="0"><div class="hint">Enter 0 if you offer free shipping</div></div>
+        <div><label>__COST_LABEL__ (__SYM__)</label><input type="number" id="s_cost" value="20" step="0.01" min="0"><div class="hint">What you paid for the product</div></div>
+        <div><label>__SHIPCOST_LABEL__ (__SYM__)</label><input type="number" id="s_shipcost" value="6" step="0.01" min="0"><div class="hint">What you actually pay the carrier</div></div>
+        <div><label>Category</label><select id="s_cat"></select><div class="hint">Fee rate applied to the sale</div></div>
+        <div><label>eBay __STORELABEL__</label><select id="s_store"></select></div>
+        <div><label>Promoted Listings ad rate (%)</label><input type="number" id="s_ad" value="0" step="0.1" min="0" max="100"><div class="hint">Enter 0 if not promoting</div></div>
+        <div><label>Insertion fee applies?</label><select id="s_insert"></select></div>
+      </div>
+
+      <div class="grid" style="margin-top:14px">
+        <div><label>Seller type</label><select id="s_biz"></select></div>
+        <div><label>Buyer location</label><select id="s_intl"></select></div>
+        __VATBOX__
+      </div>
+
+      <div class="res" id="s_res"></div>
+    </div>
+
+    <!-- 批量 -->
+    <div id="t-bulk" class="hide">
+      <p class="lead-sm">Paste your list — one item per line: <code>price, cost, shipping charged, shipping cost</code>. Only the first value is required.</p>
+      <textarea id="b_data">55, 20, 8, 6
+120, 65, 0, 9
+18.50, 7, 5.99, 4.20
+240, 150, 12, 14</textarea>
+
+      <div class="grid" style="margin-top:14px">
+        <div><label>Category</label><select id="b_cat"></select></div>
+        <div><label>__STORELABEL__</label><select id="b_store"></select></div>
+        <div><label>Ad rate (%)</label><input type="number" id="b_ad" value="0" step="0.1" min="0" max="100"></div>
+        <div><label>Seller type</label><select id="b_biz"></select></div>
+        <div><label>Buyer location</label><select id="b_intl"></select></div>
+      </div>
+
+      <button class="act" onclick="runBulk()">Calculate all</button>
+      <button class="act sec" onclick="exportCSV()">Export CSV</button>
+
+      <div class="res tbl-scroll" id="b_res"></div>
+
+      <div class="privacy">
+        <b>Your data never leaves your browser.</b> Everything is calculated locally on your device. Nothing is uploaded or stored — you can safely paste real costs.
+      </div>
+    </div>
+
+    <!-- 反向 -->
+    <div id="t-reverse" class="hide">
+      <p class="lead-sm">Know your costs and the profit you need? Work out the price you must list at so the number survives eBay's fees.</p>
+      <div class="grid">
+        <div><label>__COST_LABEL__ (__SYM__)</label><input type="number" id="r_cost" value="20" step="0.01" min="0"></div>
+        <div><label>__SHIPCOST_LABEL__ (__SYM__)</label><input type="number" id="r_shipcost" value="6" step="0.01" min="0"></div>
+        <div><label>__SHIPCH_LABEL__ (__SYM__)</label><input type="number" id="r_shipcharge" value="0" step="0.01" min="0"></div>
+        <div><label>Target profit per sale (__SYM__)</label><input type="number" id="r_target" value="12" step="0.01" min="0"></div>
+        <div><label>Category</label><select id="r_cat"></select></div>
+        <div><label>Ad rate (%)</label><input type="number" id="r_ad" value="0" step="0.1" min="0" max="100"></div>
+        __RBIZBOX__
+        __RVATBOX__
+      </div>
+      <button class="act" onclick="runReverse()" style="margin-top:14px">Calculate required price</button>
+      <div class="res" id="r_res"></div>
+      <div class="note">
+        The fee is charged on the selling price, not on your costs — so adding profit to costs and then subtracting the expected fee always gives a price that is too low. This calculator divides instead, which is the correct way round.
+      </div>
+    </div>
+  </div>
+
+  __NOTES__
+
+  <!-- FAQ / SEO 正文 -->
+  <div class="card">
+    <h2>__FAQH2__</h2>
+    __FAQBODY__
+  </div>
+
+  <footer>
+    Fee rates last reviewed __UPDATED__ · Free to use, no sign-up · Your data stays in your browser
+  </footer>
+</div>
+
+<script>
+__CONFIG__
+</script>
+<script>
+__APP__
+</script>
+<script>__BOOTSTRAP__</script>
+</body>
+</html>
