@@ -25,6 +25,7 @@ const dom = (slug) => `${BASE}/${slug}`;
 const SITES = [
   {
     cfg: "us",
+    flag: "🇺🇸",
     slug: "us-ebay-fee-calculator",
     domain: dom("us-ebay-fee-calculator"),
     title: "US eBay Fee Calculator — Final Value Fees & Net Profit (2026)",
@@ -34,7 +35,19 @@ const SITES = [
     faq: "How eBay fees work in 2026",
   },
   {
+    cfg: "ca",
+    flag: "🇨🇦",
+    slug: "ca-ebay-fee-calculator",
+    domain: dom("ca-ebay-fee-calculator"),
+    title: "Canada eBay Fee Calculator — FVF, GST/HST & Net Profit (2026)",
+    h1: "Canada eBay Fee Calculator",
+    sub: "Work out eBay.ca final value fees, the per-order charge, tax on fees and what you actually keep.",
+    desc: "Free eBay Canada fee calculator for eBay.ca sellers. Final value fees by category, per-order fee, international fees to the US and abroad, provincial GST/HST on fees, and true net profit in CAD.",
+    faq: "How eBay Canada fees work in 2026",
+  },
+  {
     cfg: "uk",
+    flag: "🇬🇧",
     slug: "uk-ebay-fee-calculator",
     domain: dom("uk-ebay-fee-calculator"),
     title: "UK eBay Fee Calculator — FVF, VAT & Net Profit (2026)",
@@ -86,6 +99,34 @@ const FAQ = {
        "It reduces the final value fee in most categories and raises your free listing allowance. It usually pays off once monthly sales reach the low thousands of dollars, or once you exceed 250 listings a month."],
       ["How accurate are these numbers?",
        "This is an estimate based on published eBay US rates for 2026. Category rates vary and eBay adjusts its fee schedule periodically. Always confirm the exact rate for your category in Seller Hub before setting prices."],
+    ],
+  },
+  ca: {
+    body: `
+    <p class="lead-sm">eBay Canada runs on managed payments, so there is no separate PayPal or card-processing charge — everything is folded into one <b>final value fee</b> plus a flat per-order fee. Two things make Canada genuinely different from the US schedule: there is <b>no regulatory operating fee</b>, and the <b>international fee is much lower</b>.</p>
+    <ul style="margin:10px 0 0 20px;font-size:14px;color:#475569">
+      <li><b>Final value fee:</b> 13.6% for most categories on the total sale up to C$7,500, then 2.35% on the portion above.</li>
+      <li><b>Per-order fee:</b> C$0.30 on orders of C$10 or less, C$0.40 above C$10. Athletic shoes at C$150 and over skip it.</li>
+      <li><b>Regulatory operating fee:</b> none in Canada, unlike the US and UK.</li>
+      <li><b>International fee:</b> 0.4% to the United States, 1% elsewhere — against a flat 1.65% in the US.</li>
+      <li><b>Insertion fee:</b> 250 free listings per month, then C$0.30 each.</li>
+      <li><b>Tax on fees:</b> GST/HST applies to eBay's fees too, at your province's rate.</li>
+    </ul>`,
+    items: [
+      ["Does eBay Canada charge a regulatory operating fee?",
+       "No. Unlike the US (0.35%) and the UK (0.35%), eBay Canada has no regulatory operating fee. Some third-party calculators add 0.4% to Canadian sales — if you see that line, it is not an eBay Canada charge."],
+      ["Is the international fee cheaper in Canada?",
+       "Yes, considerably. Canada charges 0.4% for delivery to the United States and 1% to other countries, against a flat 1.65% on eBay US. Both are waived if you ship through eBay International Shipping."],
+      ["Does the fee apply to sales tax?",
+       "The final value fee is calculated on the total amount of the sale, which includes GST/HST/PST/QST that eBay collects from the buyer. The tax itself is remitted by eBay and never lands in your payout, but because it sits inside the fee base it pushes your effective rate up slightly."],
+      ["Why is there a provincial tax line on my fees?",
+       "GST/HST applies to eBay's fees as well as to the sale, and the rate depends on where you are registered — from 5% GST in Alberta to 15% HST in Atlantic Canada. If you are GST/HST-registered you claim it back as an input tax credit, so pick the last option in the list to see your true cost."],
+      ["How much does eBay Canada take from a C$100 sale?",
+       "In a 13.6% category with no Store subscription: C$13.60 in final value fee plus the C$0.40 per-order fee, so about C$14.00 before your item and shipping costs. Add provincial GST/HST on those fees if you are not registered."],
+      ["Is the per-order fee the same as in the US?",
+       "No — it runs the opposite way. Canada charges C$0.30 at C$10 or under and C$0.40 above C$10, while the US charges $0.40 under $10 and $0.30 above. Athletic shoes priced at C$150 or more are exempt."],
+      ["How accurate are these numbers?",
+       "This is an estimate based on the published eBay.ca fee schedule for 2026. Category rates vary, Store discounts differ by tier, and eBay adjusts its schedule periodically. Confirm the exact rate for your category on eBay.ca before pricing stock."],
     ],
   },
   uk: {
@@ -144,19 +185,38 @@ function build(site) {
   rep("__STORELABEL__", cfg.id === "uk" ? "Shop subscription" : "Store subscription");
   rep("__FAQH2__", site.faq);
 
-  // VAT 勾选框（仅英国）
-  rep("__VATBOX__", cfg.vatOnFees
-    ? `<div class="vat-box"><input type="checkbox" id="s_vat" checked><label for="s_vat" style="margin:0">Include ${cfg.vatOnFees.rate}% VAT on fees <span class="hint">untick if you are VAT-registered</span></label></div>`
+  // 面包屑：回首页 + 同族工具快速切换
+  rep("__HOMEURL__", BASE + "/");
+  const siblings = SITES.filter((x) => x.cfg !== site.cfg);
+  rep("__SWITCHER__", siblings.length
+    ? `<span class="switch">${siblings
+        .map((o) => `<a href="${o.domain}">${o.flag} ${o.h1.replace(/ eBay Fee Calculator/, "")}</a>`)
+        .join("")}</span>`
     : "");
 
-  // 反向定价区：卖家类型（两国都有）+ VAT（仅英国）
-  // 反向算价必须用与校验一致的开关，否则推出的价格预留不足、利润达不到目标
+  // 费用上征收的税，两种形态由 config 决定渲染成哪种控件：
+  //   feeTax   → 多档下拉（加拿大 GST/HST 按省 5%~15%）
+  //   vatOnFees → 单一开关（英国 VAT 20%）
+  rep("__FEETAXBOX__", cfg.feeTax
+    ? `<div><label>Tax on eBay fees</label><select id="s_tax"></select>`
+      + `<div class="hint">GST/HST applies to the fees themselves, not just the sale.</div></div>`
+    : (cfg.vatOnFees
+      ? `<div class="vat-box"><input type="checkbox" id="s_vat" checked>`
+        + `<label for="s_vat" style="margin:0">Include ${cfg.vatOnFees.rate}% VAT on fees `
+        + `<span class="hint">untick if you are VAT-registered</span></label></div>`
+      : ""));
+
+  // 反向定价区必须与正向用同一套开关，否则推出的价格预留不足
   rep("__RBIZBOX__", cfg.sellerTypes && cfg.sellerTypes.length > 1
     ? `<div><label>Seller type</label><select id="r_biz"></select></div>`
     : "");
-  rep("__RVATBOX__", cfg.vatOnFees
-    ? `<div><label>Include ${cfg.vatOnFees.rate}% VAT on fees</label><select id="r_vat"><option value="1">Yes</option><option value="0">No (VAT-registered)</option></select></div>`
-    : "");
+  rep("__RVATBOX__", cfg.feeTax
+    ? `<div><label>Tax on eBay fees</label><select id="r_tax"></select></div>`
+    : (cfg.vatOnFees
+      ? `<div><label>Include ${cfg.vatOnFees.rate}% VAT on fees</label>`
+        + `<select id="r_vat"><option value="1">Yes</option>`
+        + `<option value="0">No (VAT-registered)</option></select></div>`
+      : ""));
 
   // 站点专属提示
   // 站点内链：让同族工具互相引流，形成内容集群
@@ -198,7 +258,9 @@ function buildExtras() {
 
   // 首页：导航到各工具，同时作为根路径兜底（避免根路径 404）
   const cards = SITES.map(
-    (x) => `<li><a href="/${x.slug}">${x.title.replace(/ —.*$/, "")}</a><span>${x.sub}</span></li>`
+    (x) => `<li>`
+      + `<a href="/${x.slug}"><span class="flag">${x.flag}</span>`
+      + `${x.title.replace(/ —.*$/, "")}</a><span>${x.sub}</span></li>`
   ).join("");
 
   const index = `<!DOCTYPE html>
@@ -211,10 +273,13 @@ function buildExtras() {
 <link rel="canonical" href="${B}/">
 <style>${R("src/ui/styles.css")}
 .xlinks{list-style:none;margin:0;padding:0}
-.xlinks li{margin-bottom:10px}
-.xlinks a{color:#0b5cad;font-weight:600;text-decoration:none;font-size:15px}
+.xlinks li{margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.xlinks li:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.xlinks a{color:#0b5cad;font-weight:600;text-decoration:none;font-size:16px;
+  display:flex;align-items:center;gap:9px}
 .xlinks a:hover{text-decoration:underline}
-.xlinks span{display:block;font-size:13px;color:#64748b;margin-top:2px}
+.xlinks .flag{font-size:22px;line-height:1;flex:0 0 auto}
+.xlinks li>span:not(.flag){display:block;font-size:13px;color:#64748b;margin-top:3px;padding-left:31px}
 </style>
 </head>
 <body>

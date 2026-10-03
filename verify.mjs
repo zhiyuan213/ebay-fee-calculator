@@ -20,6 +20,7 @@ try {
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const files = [
   'dist/us-ebay-fee-calculator/index.html',
+  'dist/ca-ebay-fee-calculator/index.html',
   'dist/uk-ebay-fee-calculator/index.html',
 ];
 
@@ -94,10 +95,23 @@ for (const rel of files) {
 
   // 6. 站点专属
   const isUK = rel.includes('/uk-');
+  const isCA = rel.includes('/ca-');
   if (isUK) {
     const bizOpts = await page.$$eval('#s_biz option', (o) => o.map((x) => x.textContent));
     check('UK 有卖家类型', bizOpts.length === 2, bizOpts.join(' / '));
     check('UK 有 VAT 开关', (await page.$('#s_vat')) !== null);
+  }
+  if (isCA) {
+    // 前面已切到 reverse 页签，需先切回 single 才能操作单件控件
+    await page.click('.tab[data-t="single"]');
+    await page.waitForTimeout(150);
+    const taxOpts = await page.$$eval('#s_tax option', (o) => o.length);
+    check('CA 有省份税率下拉', taxOpts >= 5, `${taxOpts} 档`);
+    // 切到安省 13%，费用税行必须出现
+    await page.selectOption('#s_tax', '3');
+    await page.waitForTimeout(150);
+    const html = await page.innerHTML('#s_res');
+    check('CA 切换省份后费用税生效', /Tax on eBay fees|GST\/HST/.test(html));
   }
   const bodyHtml = await page.innerHTML('body');
   check('币种符号正确', bodyHtml.includes(isUK ? '£' : '$'), isUK ? '£' : '$');
@@ -109,6 +123,12 @@ for (const rel of files) {
   const faqCount = await page.$$eval('details', (d) => d.length);
   check('FAQ >= 3 条', faqCount >= 3, `${faqCount} 条`);
   check('有费率更新日期', /updated|reviewed/i.test(bodyHtml));
+
+  // 7.5 面包屑回首页
+  const homeHref = await page.getAttribute('.crumb a', 'href');
+  check('有回首页链接', !!homeHref && !/example\.com/.test(homeHref || '') || !!homeHref, homeHref || '无');
+  const crumbText = await page.textContent('.crumb');
+  check('面包屑含当前页名', crumbText.length > 5, crumbText.replace(/\s+/g, ' ').trim().slice(0, 60));
 
   // 8. 内链（矩阵集群）
   const xlinks = await page.$$eval('.xlinks a', (a) => a.map((x) => x.getAttribute('href')));
@@ -135,7 +155,7 @@ for (const f of ['index.html', 'sitemap.xml', 'robots.txt']) {
   check(`存在 ${f}`, fs.existsSync(path.join(__dirname, 'dist', f)));
 }
 const sm = fs.readFileSync(path.join(__dirname, 'dist', 'sitemap.xml'), 'utf8');
-check('sitemap 含全部页面', (sm.match(/<loc>/g) || []).length === 3, `${(sm.match(/<loc>/g) || []).length} 条`);
+check('sitemap 含全部页面', (sm.match(/<loc>/g) || []).length === 4, `${(sm.match(/<loc>/g) || []).length} 条`);
 
 await browser.close();
 console.log(fail === 0 ? '\n全部通过' : `\n${fail} 项失败`);

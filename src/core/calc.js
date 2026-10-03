@@ -83,10 +83,13 @@ export function calc(cfg, o) {
   // ---- 汇总 ----
   let totalFees = fvf + perOrder + regulatory + intl + promoted + insertion;
 
-  // 增值税（英国：费用本身要加 20% VAT，未注册 VAT 的卖家是真实成本）
+  // 费用上征收的税：
+  //   英国 VAT 20%（开关式）  加拿大 GST/HST/QST 按省 5%~15%（下拉式）
+  // 两种都由 config 表达，UI 侧渲染成不同控件，计算侧统一成 feeTaxRate
+  const taxRate = feeTaxRate(cfg, o.opts);
   let vat = 0;
-  if (cfg.vatOnFees && o.opts.chargeVat) {
-    vat = totalFees * (cfg.vatOnFees.rate / 100);
+  if (taxRate > 0) {
+    vat = totalFees * (taxRate / 100);
     totalFees += vat;
   }
 
@@ -102,9 +105,7 @@ export function calc(cfg, o) {
   // 盈亏平衡：payout = cost + shipCost
   // 费用结构：比例部分 k = rate + reg + intlRate + ad，固定部分 f = perOrder + insertion
   // 若站点对费用征 VAT（英国 20%），固定部分同样被征税，必须一并折算，否则平衡点偏低
-  const vatMul = cfg.vatOnFees && o.opts.chargeVat
-    ? 1 + cfg.vatOnFees.rate / 100
-    : 1;
+  const vatMul = 1 + taxRate / 100;
   const k =
     rate +
     (regulatory > 0 ? cfg.regulatory.rate / 100 : 0) +
@@ -143,9 +144,7 @@ export function reversePrice(cfg, o) {
   // 英国站费用本身要加 20% VAT，固定费同样被征税，反向公式必须折算
   // profit = T - (T*k + f)*vatMul - cost - shipCost = target
   //   =>  T = (target + cost + shipCost + f*vatMul) / (1 - k*vatMul)
-  const vatMul = cfg.vatOnFees && o.opts.chargeVat
-    ? 1 + cfg.vatOnFees.rate / 100
-    : 1;
+  const vatMul = 1 + feeTaxRate(cfg, o.opts) / 100;
   const k = rate + reg + ad;
   const denom = 1 - k * vatMul;
   if (denom <= 0) return null;
@@ -156,6 +155,20 @@ export function reversePrice(cfg, o) {
   const itemPrice = Math.max(0, requiredTotal - shipCharge);
 
   return { itemPrice, requiredTotal };
+}
+
+/**
+ * 取费用税率（百分点）
+ * cfg.feeTax 存在时用下拉选中的省份税率；否则回落到 cfg.vatOnFees 开关
+ */
+export function feeTaxRate(cfg, opts) {
+  if (cfg.feeTax) {
+    const idx = opts.feeTaxIdx;
+    const opt = cfg.feeTax.options[idx];
+    return opt ? opt.rate : (cfg.feeTax.options[cfg.feeTax.defaultIndex]?.rate ?? 0);
+  }
+  if (cfg.vatOnFees && opts.chargeVat) return cfg.vatOnFees.rate;
+  return 0;
 }
 
 export function num(v) {

@@ -2,7 +2,7 @@
 
 多站点 eBay 费用计算器。纯前端单文件静态页，零依赖、零后端、零服务器成本。
 
-当前已生成：**US** 与 **UK** 两个站点。
+当前已生成：**US** / **CA** / **UK** 三个站点。
 
 ---
 
@@ -53,9 +53,12 @@ SITE_DOMAIN=https://yourdomain.com node build.mjs
 ```
 /                              → 首页，导航到各工具
 /us-ebay-fee-calculator        → 美国站
+/ca-ebay-fee-calculator        → 加拿大站
 /uk-ebay-fee-calculator        → 英国站
 /sitemap.xml  /robots.txt      → 收录用
 ```
+
+每个计算器页顶部有面包屑：回首页 + 同族站点快速切换。
 
 每个工具独占一个干净路径，利于 SEO。站点之间自动互链，形成内容集群。
 
@@ -101,7 +104,8 @@ dist/               产物，可直接部署
 | `international` | 国际费 `{ label, bands, privateRate }` |
 | `storeOptions` / `insertOptions` | 店铺、插入费下拉选项 |
 | `privateZeroFee` | 私人卖家是否免 FVF（英国为 `true`） |
-| `vatOnFees` | 费用上的增值税（英国 20%），不设则无此控件 |
+| `feeTax` | 费用税**多档下拉**（加拿大 GST/HST 按省 `{label, options:[{label,rate}], defaultIndex}`） |
+| `vatOnFees` | 费用税**单一开关**（英国 VAT 20%）。两者二选一，计算侧统一为 `feeTaxRate()` |
 | `sellerTypes` / `defaultBusiness` | 卖家类型选项与默认值 |
 | `copy` | 站点文案差异（英国用 postage，美国用 shipping） |
 | `notes` | 站点专属提示，渲染为独立区块 |
@@ -130,6 +134,8 @@ reversePrice(cfg, input) // 反向定价：已知成本与目标利润，反推�
 ⚠ **上线前请到 eBay 官方 Seller Hub 核对**，以下为公开资料整理，部分类目各来源说法不一致。
 
 **US**：默认 13.25%（$7,500 以上部分 2.35%）+ 每单 $0.30（<$10 为 $0.40）+ 监管费 0.35%（仅商业卖家）+ 国际 1.65%
+
+`CA`：13.6%（C$7,500 以上部分 2.35%）+ 每单 C$0.30（>C$10 为 C$0.40）+ **无监管费** + 国际费 0.4%（美国）/ 1%（其他）+ 费用按省交 GST/HST 5%~15%
 
 **UK**：默认 12.9% + 每单 £0.30（>£10 为 £0.40）+ 监管费 0.35% + 费用加 20% VAT
 英国居民私人卖家自 2024-10 起 FVF 与监管费均为 0（汽车类除外）

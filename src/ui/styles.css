@@ -48,7 +48,20 @@ footer{text-align:center;font-size:12.5px;color:var(--mut);padding:20px 16px 0}
 .hide{display:none}
 @media(max-width:600px){header h1{font-size:21px}.card{padding:15px}}
 .xlinks{list-style:none;margin:0;padding:0}
-.xlinks li{margin-bottom:10px}
-.xlinks a{color:#0b5cad;font-weight:600;text-decoration:none;font-size:15px}
+.xlinks li{margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--line)}
+.xlinks li:last-child{border-bottom:none;margin-bottom:0;padding-bottom:0}
+.xlinks a{color:#0b5cad;font-weight:600;text-decoration:none;font-size:16px;
+  display:flex;align-items:center;gap:9px}
 .xlinks a:hover{text-decoration:underline}
-.xlinks span{display:block;font-size:13px;color:#64748b;margin-top:2px}
+.xlinks li>span:not(.flag){display:block;font-size:13px;color:#64748b;margin-top:3px;padding-left:31px}
+.crumb{display:flex;align-items:center;flex-wrap:wrap;gap:8px;padding:0 16px;max-width:900px;margin:0 auto 12px;font-size:13px}
+.crumb a{color:#fff;text-decoration:none;opacity:.9;border-bottom:1px solid rgba(255,255,255,.4)}
+.crumb a:hover{opacity:1;border-bottom-color:#fff}
+.crumb .sep{opacity:.5}
+.crumb .cur{opacity:.75}
+.crumb .switch{margin-left:auto;display:flex;gap:6px;flex-wrap:wrap}
+.crumb .switch a{background:rgba(255,255,255,.16);border:1px solid rgba(255,255,255,.3);
+  border-radius:14px;padding:2px 10px;font-size:12px;border-bottom:none}
+.crumb .switch a:hover{background:rgba(255,255,255,.28)}
+@media(max-width:600px){.crumb{font-size:12px}.crumb .switch{margin-left:0;width:100%}}
+.xlinks .flag{font-size:22px;line-height:1;flex:0 0 auto}

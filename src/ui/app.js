@@ -19,6 +19,7 @@ function fillAll() {
   ["s_store", "b_store"].forEach((id) => fill(id, CFG.storeOptions));
   ["s_insert"].forEach((id) => fill(id, CFG.insertOptions));
   ["s_biz", "b_biz", "r_biz"].forEach((id) => fill(id, CFG.sellerTypes));
+  if (CFG.feeTax) ["s_tax", "b_tax", "r_tax"].forEach((id) => fill(id, CFG.feeTax.options));
   fill("s_intl", intlOptions());
   fill("b_intl", intlOptions());
   // 默认值
@@ -27,6 +28,7 @@ function fillAll() {
   setV("b_biz", CFG.defaultBusiness ? 0 : 1);
   setV("r_biz", CFG.defaultBusiness ? 0 : 1);
   setV("r_vat", "1");
+  if (CFG.feeTax) ["s_tax", "b_tax", "r_tax"].forEach((id) => setV(id, CFG.feeTax.defaultIndex));
 }
 function intlOptions() {
   const bands = CFG.international?.bands || {};
@@ -36,12 +38,23 @@ function intlOptions() {
   return opts;
 }
 
+/* 费用税行的标签：两种 config 形态不同 */
+function taxLabel(amount, cfg, idx) {
+  if (amount <= 0) return "";
+  if (cfg.feeTax) {
+    const o = cfg.feeTax.options[idx];
+    return `${cfg.feeTax.label} (${o ? o.rate : 0}%)`;
+  }
+  return `${cfg.vatOnFees.label} (${cfg.vatOnFees.rate}%)`;
+}
+
 /* ---------- 收集表单 ---------- */
 function optsFrom(p) {
   const bizEl = document.getElementById(p + "_biz");
   const stEl = document.getElementById(p + "_store");
   const intlEl = document.getElementById(p + "_intl");
   const vatEl = document.getElementById(p + "_vat");
+  const taxEl = document.getElementById(p + "_tax");
   return {
     storeCut: stEl ? (CFG.storeOptions[+stEl.value]?.cut || 0) : 0,
     intl: intlEl ? (intlEl.options[intlEl.selectedIndex]?.label && intlEl.selectedIndex > 0
@@ -49,6 +62,7 @@ function optsFrom(p) {
         : "") : "",
     privateSeller: bizEl ? !CFG.sellerTypes[+bizEl.value].business : false,
     chargeVat: vatEl ? vatEl.checked : true,
+    feeTaxIdx: taxEl ? +taxEl.value : (CFG.feeTax?.defaultIndex ?? 0),
   };
 }
 function g(id) { const e = document.getElementById(id); return e ? e.value : 0; }
@@ -80,7 +94,7 @@ function runSingle() {
     + (show(r.intl) ? row(CFG.international.label, money(r.intl, S)) : "")
     + (show(r.promoted) ? row("Promoted Listings fee", money(r.promoted, S)) : "")
     + (show(r.insertion) ? row("Insertion fee", money(r.insertion, S)) : "")
-    + (show(r.vat) ? row(`${CFG.vatOnFees.label} (${CFG.vatOnFees.rate}%)`, money(r.vat, S)) : "")
+    + (show(r.vat) ? row(taxLabel(r.vat, CFG, o.opts.feeTaxIdx), money(r.vat, S)) : "")
     + sumRow("Total fees", money(r.totalFees, S))
     + "</table>";
 
@@ -167,9 +181,11 @@ function runReverse() {
   // （英国站忘了 VAT，反推出的价格会比实际需要的低，利润达不到目标）
   const vatEl = document.getElementById("r_vat");
   const chargeVat = vatEl ? vatEl.value === "1" || vatEl.value === "true" : !!(CFG.vatOnFees);
+  const rTaxEl = document.getElementById("r_tax");
+  const feeTaxIdx = rTaxEl ? +rTaxEl.value : (CFG.feeTax?.defaultIndex ?? 0);
   const bizEl = document.getElementById("r_biz");
   const privateSeller = bizEl ? !CFG.sellerTypes[+bizEl.value].business : false;
-  const opts = { privateSeller, chargeVat };
+  const opts = { privateSeller, chargeVat, feeTaxIdx };
 
   const o = {
     cost: g("r_cost"), shipCost: g("r_shipcost"), shipCharge: g("r_shipcharge"),
@@ -200,7 +216,7 @@ function runReverse() {
     + row(`Final value fee (${cat.rate.toFixed(2)}%)`, money(check.fvf, S))
     + row("Per-order fee", money(check.perOrder, S))
     + (check.regulatory > 0 ? row(`${CFG.regulatory.label} (${CFG.regulatory.rate}%)`, money(check.regulatory, S)) : "")
-    + (check.vat > 0 ? row(`${CFG.vatOnFees.label} (${CFG.vatOnFees.rate}%)`, money(check.vat, S)) : "")
+    + (check.vat > 0 ? row(taxLabel(check.vat, CFG, feeTaxIdx), money(check.vat, S)) : "")
     + sumRow("Total fees", money(check.totalFees, S))
     + row("Less item cost", "-" + money(num(o.cost), S))
     + row(`Less ${CFG.id === "uk" ? "postage" : "shipping"} label`, "-" + money(num(o.shipCost), S))
@@ -221,14 +237,14 @@ export function init() {
       });
     };
   });
-  ["s_price","s_shipcharge","s_cost","s_shipcost","s_cat","s_store","s_ad","s_insert","s_biz","s_intl","s_vat"]
+  ["s_price","s_shipcharge","s_cost","s_shipcost","s_cat","s_store","s_ad","s_insert","s_biz","s_intl","s_vat","s_tax"]
     .forEach((id) => {
       const el = document.getElementById(id);
       if (!el) return;
       el.oninput = runSingle;
       el.onchange = runSingle;
     });
-  ["r_cost","r_shipcost","r_shipcharge","r_target","r_cat","r_ad","r_biz","r_vat"]
+  ["r_cost","r_shipcost","r_shipcharge","r_target","r_cat","r_ad","r_biz","r_vat","r_tax"]
     .forEach((id) => {
       const el = document.getElementById(id);
       if (!el) return;
