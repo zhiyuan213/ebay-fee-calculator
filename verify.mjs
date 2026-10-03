@@ -151,6 +151,16 @@ for (const rel of files) {
     check('底部按钮 href 有效', !!href && href !== '#', href || '无');
   }
 
+  // 7.55 顶部 Home 徽标（与费率日期并排，最容易看到的位置）
+  const homeBadge = await page.$('.badge-link');
+  check('顶部有 Home 按钮', homeBadge !== null);
+  if (homeBadge) {
+    const h = await homeBadge.getAttribute('href');
+    const t = (await homeBadge.textContent()).trim();
+    check('Home 按钮指向首页', /\/$/.test(h || ''), h || '无');
+    check('Home 按钮文案可读', /home/i.test(t), t);
+  }
+
   // 7.6 页脚 About / Privacy / Contact —— AdSense 审核会看
   const footLinks = await page.$$eval('footer a', (a) =>
     a.map((x) => ({ t: x.textContent.trim(), h: x.getAttribute('href') })));
