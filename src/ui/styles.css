@@ -80,5 +80,3 @@ footer a{color:#64748b;text-decoration:none}
 footer a:hover{color:var(--brand);text-decoration:underline}
 footer a:hover{text-decoration:underline}
 .fnote{margin-top:8px;font-size:12px}
-.badge-link{text-decoration:none;margin-left:8px;transition:background .15s}
-.badge-link:hover{background:rgba(255,255,255,.32);border-color:rgba(255,255,255,.55)}
