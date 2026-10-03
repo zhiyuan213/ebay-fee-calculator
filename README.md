@@ -10,16 +10,54 @@
 
 ```bash
 node build.mjs          # 构建，产物在 dist/
-node verify.mjs         # 渲染与交互自检
+node verify.mjs         # 真实浏览器自检（Playwright + Chromium）
 ```
 
-产物是单文件 HTML，双击即可本地打开；也可直接拖进 Cloudflare Pages / Vercel 部署。
+产物是单文件 HTML，双击即可本地打开。
 
-**部署前必须替换域名**（当前 canonical 是 `example.com` 占位）：
+---
+
+## 部署到 Cloudflare
+
+仓库已含 `wrangler.toml`，指向 `./dist` 静态目录，向导默认配置即可直接用：
+
+| 项 | 值 |
+|---|---|
+| Build command | `npm run build` |
+| Deploy command | `npx wrangler deploy` |
+| Output directory | 由 `wrangler.toml` 的 `[assets]` 指定，控制台无需再填 |
+
+**部署前必须做的一件事：设置 `SITE_DOMAIN` 环境变量。**
+
+canonical 与 sitemap 里的域名默认是 `example.com` 占位，不替换会影响收录。
+在 Cloudflare 控制台 → Settings → Environment variables 添加：
+
+```
+SITE_DOMAIN = https://你的域名.pages.dev
+```
+
+（`*.pages.dev` 是 Cloudflare 自动分配的，部署后可见；绑定自有域名后再改一次并重新部署即可。）
+
+构建时注入：
 
 ```bash
 SITE_DOMAIN=https://yourdomain.com node build.mjs
 ```
+
+> 每次改费率后请同步改 `src/config/*.js` 里的 `updated` 字段——页面会显示这个日期，用户靠它判断数据新鲜度，Google 也会因内容变动重新抓取。
+
+---
+
+## URL 结构
+
+```
+/                              → 首页，导航到各工具
+/us-ebay-fee-calculator        → 美国站
+/uk-ebay-fee-calculator        → 英国站
+/sitemap.xml  /robots.txt      → 收录用
+```
+
+每个工具独占一个干净路径，利于 SEO。站点之间自动互链，形成内容集群。
 
 ---
 

@@ -5,7 +5,7 @@
  * 用法：node build.mjs
  * 新增站点：在 SITES 里加一行
  */
-import { readFileSync, writeFileSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -25,7 +25,7 @@ const dom = (slug) => `${BASE}/${slug}`;
 const SITES = [
   {
     cfg: "us",
-    out: "us-ebay-fee-calculator.html",
+    slug: "us-ebay-fee-calculator",
     domain: dom("us-ebay-fee-calculator"),
     title: "US eBay Fee Calculator — Final Value Fees & Net Profit (2026)",
     h1: "US eBay Fee Calculator",
@@ -35,7 +35,7 @@ const SITES = [
   },
   {
     cfg: "uk",
-    out: "uk-ebay-fee-calculator.html",
+    slug: "uk-ebay-fee-calculator",
     domain: dom("uk-ebay-fee-calculator"),
     title: "UK eBay Fee Calculator — FVF, VAT & Net Profit (2026)",
     h1: "UK eBay Fee Calculator",
@@ -159,6 +159,14 @@ function build(site) {
     : "");
 
   // 站点专属提示
+  // 站点内链：让同族工具互相引流，形成内容集群
+  const others = SITES.filter((x) => x.cfg !== site.cfg);
+  rep("__CROSSLINKS__", others.length
+    ? `<div class="card"><h2>Related calculators</h2><ul class="xlinks">${
+        others.map((o) => `<li><a href="${o.domain}">${o.title.replace(/ —.*$/, "")}</a><span>${o.sub}</span></li>`).join("")
+      }</ul></div>`
+    : "");
+
   rep("__NOTES__", cfg.notes
     ? `<div class="site-notes"><h2>Things that catch UK sellers out</h2><ul>${cfg.notes.map((n) => `<li>${n}</li>`).join("")}</ul></div>`
     : "");
@@ -176,11 +184,81 @@ function build(site) {
   rep("__APP__", APP_BUNDLE);
   rep("__BOOTSTRAP__", "");
 
-  const out = join(__dirname, "dist", site.out);
+  const dir = join(__dirname, "dist", site.slug);
+  mkdirSync(dir, { recursive: true });
+  const out = join(dir, "index.html");
   writeFileSync(out, html, "utf8");
   const kb = (Buffer.byteLength(html, "utf8") / 1024).toFixed(1);
-  console.log(`✓ ${site.out}  (${kb} KB)`);
+  console.log(`✓ ${site.slug}/index.html  (${kb} KB)`);
+}
+
+/* ---------- 首页 / sitemap / robots ---------- */
+function buildExtras() {
+  const B = BASE;
+
+  // 首页：导航到各工具，同时作为根路径兜底（避免根路径 404）
+  const cards = SITES.map(
+    (x) => `<li><a href="/${x.slug}">${x.title.replace(/ —.*$/, "")}</a><span>${x.sub}</span></li>`
+  ).join("");
+
+  const index = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>eBay Fee Calculators — US &amp; UK</title>
+<meta name="description" content="Free eBay fee calculators for US and UK sellers. Work out final value fees, per-order charges and your real net profit before you list.">
+<link rel="canonical" href="${B}/">
+<style>${R("src/ui/styles.css")}
+.xlinks{list-style:none;margin:0;padding:0}
+.xlinks li{margin-bottom:10px}
+.xlinks a{color:#0b5cad;font-weight:600;text-decoration:none;font-size:15px}
+.xlinks a:hover{text-decoration:underline}
+.xlinks span{display:block;font-size:13px;color:#64748b;margin-top:2px}
+</style>
+</head>
+<body>
+<header><h1>eBay Fee Calculators</h1><p>Work out what eBay takes and what you actually keep.</p></header>
+<div class="wrap">
+  <div class="card"><h2>Calculators</h2><ul class="xlinks">${cards}</ul></div>
+</div>
+</body>
+</html>`;
+  writeFileSync(join(__dirname, "dist", "index.html"), index, "utf8");
+  console.log("✓ index.html");
+
+  // sitemap.xml
+  const urls = [`${B}/`, ...SITES.map((x) => `${B}/${x.slug}`)];
+  const today = new Date().toISOString().slice(0, 10);
+  const sitemap = `<?xml version="1.0" encoding="UTF-8"?>
+<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
+${urls
+  .map(
+    (u) => `  <url>
+    <loc>${u}</loc>
+    <lastmod>${today}</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>${u === `${B}/` ? "1.0" : "0.9"}</priority>
+  </url>`
+  )
+  .join("\n")}
+</urlset>`;
+  writeFileSync(join(__dirname, "dist", "sitemap.xml"), sitemap, "utf8");
+  console.log("✓ sitemap.xml");
+
+  // robots.txt（指向 sitemap，便于 Google 抓取）
+  writeFileSync(
+    join(__dirname, "dist", "robots.txt"),
+    `User-agent: *
+Allow: /
+
+Sitemap: ${B}/sitemap.xml
+`,
+    "utf8"
+  );
+  console.log("✓ robots.txt");
 }
 
 SITES.forEach(build);
-console.log("\ndist/ 已生成，可直接部署到 Cloudflare Pages / Vercel。");
+buildExtras();
+console.log("\ndist/ 已生成，可直接部署到 Cloudflare Pages。");

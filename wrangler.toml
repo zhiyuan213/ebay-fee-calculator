@@ -1,0 +1,9 @@
+# Cloudflare Workers + 静态资源（推荐，向导默认用的就是 wrangler deploy）
+name = "ebay-fee-calculator"
+compatibility_date = "2026-10-03"
+
+# dist/ 里是纯静态文件，不需要任何后端代码
+[assets]
+directory = "./dist"
+# 单文件 HTML 已包含全部 CSS/JS，无需打包器
+not_found_handling = "404-page"
