@@ -2,7 +2,7 @@
 
 多站点 eBay 费用计算器。纯前端单文件静态页，零依赖、零后端、零服务器成本。
 
-当前已生成：**US** / **CA** / **UK** 三个站点。
+当前已生成：**US** / **CA** / **AU** / **UK** 四个站点。
 
 ---
 
@@ -74,6 +74,7 @@ GA_ID = G-XXXXXXXXXX
 /                              → 首页，导航到各工具
 /us-ebay-fee-calculator        → 美国站
 /ca-ebay-fee-calculator        → 加拿大站
+/au-ebay-fee-calculator        → 澳大利亚站
 /uk-ebay-fee-calculator        → 英国站
 /about  /privacy  /contact     → 静态页（AdSense 审核需要，不进 sitemap）
 /sitemap.xml  /robots.txt      → 收录用

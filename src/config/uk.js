@@ -10,6 +10,7 @@
  */
 
 export default {
+  storeLabel: "Shop subscription",
   id: "uk",
   name: "United Kingdom",
   symbol: "£",

@@ -21,6 +21,8 @@ const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const files = [
   'dist/us-ebay-fee-calculator/index.html',
   'dist/ca-ebay-fee-calculator/index.html',
+  'dist/au-ebay-fee-calculator/index.html',
+  'dist/etsy-fee-calculator/index.html',
   'dist/uk-ebay-fee-calculator/index.html',
 ];
 
@@ -39,6 +41,9 @@ const browser = await chromium.launch({
 });
 
 for (const rel of files) {
+  const isCA = rel.includes('/ca-');
+  const isAU = rel.includes('/au-');
+  const isEtsy = rel.includes('/etsy-');
   const file = path.join(__dirname, rel);
   console.log(`\n===== ${rel} =====`);
   const page = await browser.newPage();
@@ -76,7 +81,7 @@ for (const rel of files) {
 
   // 3. 类目切换
   const catCount = await page.$$eval('#s_cat option', (o) => o.length);
-  check('类目下拉已填充', catCount >= 8, `${catCount} 项`);
+  check('类目下拉已填充', isEtsy ? catCount >= 2 : catCount >= 5, `${catCount} 项`);
   await page.selectOption('#s_cat', '1');
   await page.waitForTimeout(150);
   check('切换类目无 NaN', !/NaN/.test(await page.innerHTML('#s_res')));
@@ -105,11 +110,73 @@ for (const rel of files) {
 
   // 6. 站点专属
   const isUK = rel.includes('/uk-');
-  const isCA = rel.includes('/ca-');
   if (isUK) {
     const bizOpts = await page.$$eval('#s_biz option', (o) => o.map((x) => x.textContent));
     check('UK 有卖家类型', bizOpts.length === 2, bizOpts.join(' / '));
     check('UK 有 VAT 开关', (await page.$('#s_vat')) !== null);
+  }
+  if (isEtsy) {
+    await page.click('.tab[data-t="single"]');
+    await page.waitForTimeout(150);
+    const ads = await page.$$eval('#s_ads option', (o) => o.length);
+    check('Etsy 有站外广告下拉', ads >= 3, `${ads} 档`);
+    check('Etsy 有销售税输入', (await page.$('#s_taxpct')) !== null);
+    check('Etsy 无 seller type 下拉', (await page.$('#s_biz')) === null);
+    const h = await page.innerHTML('#s_res');
+    check('Etsy 显示支付处理费', /Payment processing/i.test(h));
+    // 站外广告封顶 $100
+    await page.fill('#s_price', '2000');
+    await page.selectOption('#s_ads', '2');
+    await page.waitForTimeout(200);
+    const h2 = await page.innerHTML('#s_res');
+    check('Etsy 站外广告封顶 $100', /100\.00/.test(h2));
+    await page.fill('#s_price', '50');
+    await page.selectOption('#s_ads', '0');
+    await page.waitForTimeout(150);
+  }
+  // 平台术语一致性：串台的术语肉眼看不出来 —— 下拉框照样渲染、照样能选，
+  // 只是语义全错（Etsy 站显示 "Promoted Listings"、eBay 站显示 "Offsite Ads"）。
+  // 只有显式比对词表才抓得住。范围限定在三个 tab，避免命中底部同族内链。
+  if (isEtsy || /\/(us|ca|au|uk)-/.test(rel)) {
+    const formText = await page.evaluate(() =>
+      ['t-single', 't-bulk', 't-reverse']
+        .map((i) => document.getElementById(i)?.textContent || '').join('\n'));
+    if (isEtsy) {
+      const bad = ['eBay', 'Promoted Listings', 'Insertion fee', 'Final value fee',
+                   'Per-order fee', 'Store subscription', 'Seller type', 'Buyer location']
+        .filter((w) => formText.includes(w));
+      check('Etsy 站无 eBay 术语', bad.length === 0, bad.join(', ') || '无');
+      const miss = ['Transaction fee', 'Payment processing', 'Listing fee', 'Offsite Ads']
+        .filter((w) => !formText.includes(w));
+      check('Etsy 站有 Etsy 术语', miss.length === 0, miss.join(', ') || '齐全');
+    } else {
+      const bad = ['Etsy', 'Offsite Ads', 'Listing fee', 'Listing category',
+                   'Payment processing', 'Transaction fee'].filter((w) => formText.includes(w));
+      check('eBay 站无 Etsy 术语', bad.length === 0, bad.join(', ') || '无');
+      const miss = ['Final value fee', 'Per-order fee', 'Promoted Listings', 'Insertion fee']
+        .filter((w) => !formText.includes(w));
+      check('eBay 站有 eBay 术语', miss.length === 0, miss.join(', ') || '齐全');
+    }
+  }
+  if (isAU) {
+    await page.click('.tab[data-t="single"]');
+    await page.waitForTimeout(150);
+    const plans = await page.$$eval('#s_store option', (o) => o.length);
+    check('AU 有 Pro 计划下拉', plans >= 5, `${plans} 档`);
+    const gst = await page.$$eval('#s_gst option', (o) => o.length);
+    check('AU 有 GST 选项', gst >= 2, `${gst} 档`);
+    // 免费销售：交易费为 0，但每单费照收
+    await page.selectOption('#s_store', '0');
+    await page.waitForTimeout(150);
+    const h = await page.innerHTML('#s_res');
+    check('AU 免费销售仍收每单费', /0\.30/.test(h), 'FVF 应为 0');
+    await page.selectOption('#s_store', '1');
+    await page.waitForTimeout(150);
+    // ABN 注册：GST 应可省
+    await page.selectOption('#s_gst', '1');
+    await page.waitForTimeout(150);
+    const h2 = await page.innerHTML('#s_res');
+    check('AU 切换 GST 后有抵扣行', /GST/i.test(h2));
   }
   if (isCA) {
     // 前面已切到 reverse 页签，需先切回 single 才能操作单件控件
@@ -262,7 +329,7 @@ if (fs.existsSync(adsTxtPath)) {
 }
 
 const sm = fs.readFileSync(path.join(__dirname, 'dist', 'sitemap.xml'), 'utf8');
-check('sitemap 含全部页面', (sm.match(/<loc>/g) || []).length === 4, `${(sm.match(/<loc>/g) || []).length} 条`);
+check('sitemap 含全部页面', (sm.match(/<loc>/g) || []).length === 6, `${(sm.match(/<loc>/g) || []).length} 条`);
 
 await browser.close();
 console.log(fail === 0 ? '\n全部通过' : `\n${fail} 项失败`);

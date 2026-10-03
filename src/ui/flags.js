@@ -10,7 +10,7 @@
  */
 
 /* 站点 id → 国旗 id（配置里是 uk，旗子是 gb） */
-const ALIAS = { uk: "gb", gb: "gb", us: "us", ca: "ca" };
+const ALIAS = { uk: "gb", gb: "gb", us: "us", ca: "ca", au: "au", "etsy-us": "etsy", etsy: "etsy" };
 
 /* 五角星路径 */
 function star(cx, cy, r) {
@@ -47,6 +47,54 @@ function usFlag() {
     }
   }
   return s;
+}
+
+/* Etsy 标识（橙色圆角方块 + E）—— 平台图标而非国旗 */
+function etsyFlag() {
+  return `<rect width="48" height="48" rx="11" fill="#F1641E"/>`
+    + `<path d="M15 13h18v3.2h-7.1v18.6h-3.8V16.2H15V13z" fill="#fff"/>`;
+}
+
+/* 七角星（澳洲联邦之星与南十字用） */
+function star7(cx, cy, r, inner = 0.45) {
+  const pts = [];
+  for (let i = 0; i < 14; i++) {
+    const rad = (Math.PI / 7) * i - Math.PI / 2;
+    const rr = i % 2 === 0 ? r : r * inner;
+    pts.push(
+      (cx + rr * Math.cos(rad)).toFixed(1) + "," + (cy + rr * Math.sin(rad)).toFixed(1)
+    );
+  }
+  return "M" + pts.join("L") + "Z";
+}
+
+/* 澳大利亚：蓝底 + 左上英国旗 + 联邦之星 + 南十字 */
+function auFlag() {
+  // 旗面 120x60（比例 2:1）。canton 就是 60x30 的英国旗，原样放在左上角
+  const cross = "M30 0V30M0 15H60";
+  const canton =
+    `<rect width="60" height="30" fill="#012169"/>` +
+    `<path d="M0 0L60 30" stroke="#fff" stroke-width="6" fill="none"/>` +
+    `<path d="M60 0L0 30" stroke="#fff" stroke-width="6" fill="none"/>` +
+    `<path d="M0 0L60 30" stroke="#c8102e" stroke-width="3" fill="none" transform="translate(0.9 0.5)"/>` +
+    `<path d="M60 0L0 30" stroke="#c8102e" stroke-width="3" fill="none" transform="translate(-0.9 0.5)"/>` +
+    `<path d="${cross}" stroke="#fff" stroke-width="10" fill="none"/>` +
+    `<path d="${cross}" stroke="#c8102e" stroke-width="6" fill="none"/>`;
+
+  // 南十字：四颗七角星 + 一颗小五角星
+  const crux =
+    `<path d="${star7(92, 24, 3.6)}" fill="#fff"/>` +   // Gacrux（上）
+    `<path d="${star7(92, 50, 4.0)}" fill="#fff"/>` +   // Acrux（下）
+    `<path d="${star7(80, 36, 3.6)}" fill="#fff"/>` +   // Mimosa（左）
+    `<path d="${star7(104, 34, 3.6)}" fill="#fff"/>` +  // Decrux（右）
+    `<path d="${star(96, 42, 2.6)}" fill="#fff"/>`;     // Epsilon（小）
+
+  return (
+    `<rect width="120" height="60" fill="#00247d"/>` +
+    canton +
+    `<path d="${star7(30, 44, 8)}" fill="#fff"/>` +   // 联邦之星
+    crux
+  );
 }
 
 /* 加拿大：红-白-红 + 枫叶 */
@@ -92,9 +140,9 @@ function gbFlag() {
   ].join("");
 }
 
-const VB = { us: "0 0 190 100", ca: "0 0 120 60", gb: "0 0 60 30" };
-const RATIO = { us: 100 / 190, ca: 60 / 120, gb: 30 / 60 };
-const BODY = { us: usFlag, ca: caFlag, gb: gbFlag };
+const VB = { us: "0 0 190 100", ca: "0 0 120 60", gb: "0 0 60 30", au: "0 0 120 60", etsy: "0 0 48 48" };
+const RATIO = { us: 100 / 190, ca: 60 / 120, gb: 30 / 60, au: 60 / 120, etsy: 1 };
+const BODY = { us: usFlag, ca: caFlag, gb: gbFlag, au: auFlag, etsy: etsyFlag };
 
 const resolve = (id) => ALIAS[id] || (BODY[id] ? id : "us");
 

@@ -21,7 +21,7 @@ __FLAGDEFS__
 
 <header>
   <nav class="crumb">
-    <a href="__HOMEURL__">eBay Fee Calculators</a>
+    <a href="__HOMEURL__">__SITENAME__</a>
     <span class="sep">/</span>
     <span>__H1__</span>
     __SWITCHER__
@@ -47,16 +47,17 @@ __FLAGDEFS__
         <div><label>__SHIPCH_LABEL__ (__SYM__)</label><input type="number" id="s_shipcharge" value="8" step="0.01" min="0"><div class="hint">Enter 0 if you offer free shipping</div></div>
         <div><label>__COST_LABEL__ (__SYM__)</label><input type="number" id="s_cost" value="20" step="0.01" min="0"><div class="hint">What you paid for the product</div></div>
         <div><label>__SHIPCOST_LABEL__ (__SYM__)</label><input type="number" id="s_shipcost" value="6" step="0.01" min="0"><div class="hint">What you actually pay the carrier</div></div>
-        <div><label>Category</label><select id="s_cat"></select><div class="hint">Fee rate applied to the sale</div></div>
-        <div><label>eBay __STORELABEL__</label><select id="s_store"></select></div>
-        <div><label>Promoted Listings ad rate (%)</label><input type="number" id="s_ad" value="0" step="0.1" min="0" max="100"><div class="hint">Enter 0 if not promoting</div></div>
-        <div><label>Insertion fee applies?</label><select id="s_insert"></select></div>
+        <div><label>__CATLABEL__</label><select id="s_cat"></select><div class="hint">__CATHINT__</div></div>
+        __STOREBOX__
+        <div><label>__ADLABEL__</label><input type="number" id="s_ad" value="0" step="0.1" min="0" max="100"><div class="hint">Enter 0 if not promoting</div></div>
+        __INSERTBOX__
       </div>
 
       <div class="grid" style="margin-top:14px">
-        <div><label>Seller type</label><select id="s_biz"></select></div>
-        <div><label>Buyer location</label><select id="s_intl"></select></div>
+        __SBIZROW__
+        __INTLBOX__
         __FEETAXBOX__
+        __ETSYBOX__
       </div>
 
       <div class="res" id="s_res"></div>
@@ -71,11 +72,11 @@ __FLAGDEFS__
 240, 150, 12, 14</textarea>
 
       <div class="grid" style="margin-top:14px">
-        <div><label>Category</label><select id="b_cat"></select></div>
-        <div><label>__STORELABEL__</label><select id="b_store"></select></div>
+        <div><label>__CATLABEL__</label><select id="b_cat"></select></div>
+        __BSTOREBOX__
         <div><label>Ad rate (%)</label><input type="number" id="b_ad" value="0" step="0.1" min="0" max="100"></div>
-        <div><label>Seller type</label><select id="b_biz"></select></div>
-        <div><label>Buyer location</label><select id="b_intl"></select></div>
+        __BBIZROW__
+        __BINTLBOX__
       </div>
 
       <button class="act" onclick="runBulk()">Calculate all</button>
@@ -90,15 +91,17 @@ __FLAGDEFS__
 
     <!-- 反向 -->
     <div id="t-reverse" class="hide">
-      <p class="lead-sm">Know your costs and the profit you need? Work out the price you must list at so the number survives eBay's fees.</p>
+      <p class="lead-sm">Know your costs and the profit you need? Work out the price you must list at so the number survives __BRAND__'s fees.</p>
       <div class="grid">
         <div><label>__COST_LABEL__ (__SYM__)</label><input type="number" id="r_cost" value="20" step="0.01" min="0"></div>
         <div><label>__SHIPCOST_LABEL__ (__SYM__)</label><input type="number" id="r_shipcost" value="6" step="0.01" min="0"></div>
         <div><label>__SHIPCH_LABEL__ (__SYM__)</label><input type="number" id="r_shipcharge" value="0" step="0.01" min="0"></div>
         <div><label>Target profit per sale (__SYM__)</label><input type="number" id="r_target" value="12" step="0.01" min="0"></div>
-        <div><label>Category</label><select id="r_cat"></select></div>
+        <div><label>__CATLABEL__</label><select id="r_cat"></select></div>
         <div><label>Ad rate (%)</label><input type="number" id="r_ad" value="0" step="0.1" min="0" max="100"></div>
         __RBIZBOX__
+        __RETSYBOX__
+        __RSTOREBOX__
         __RVATBOX__
       </div>
       <button class="act" onclick="runReverse()" style="margin-top:14px">Calculate required price</button>

@@ -5,6 +5,7 @@
  */
 
 export default {
+  storeLabel: "Store subscription",
   id: "us",
   name: "United States",
   symbol: "$",

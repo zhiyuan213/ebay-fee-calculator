@@ -86,6 +86,28 @@ const SITES = [
     faq: "How eBay Canada fees work in 2026",
   },
   {
+    cfg: "au",
+    flag: "🇦🇺",
+    slug: "au-ebay-fee-calculator",
+    domain: dom("au-ebay-fee-calculator"),
+    title: "Australia eBay Fee Calculator — Pro Plans, GST & Net Profit (2026)",
+    h1: "Australia eBay Fee Calculator",
+    sub: "Work out eBay.com.au final value fees under each Pro plan, the per-order charge, GST and what you actually keep.",
+    desc: "Free eBay Australia fee calculator for eBay.com.au sellers. Final value fees by Pro plan and category tier, per-order fee, 3% international sales fee, GST included in rates, and true net profit in AUD.",
+    faq: "How eBay Australia fees work in 2026",
+  },
+  {
+    cfg: "etsy-us",
+    flag: "etsy",
+    slug: "etsy-fee-calculator",
+    domain: dom("etsy-fee-calculator"),
+    title: "Etsy Fee Calculator — Transaction, Processing & Offsite Ads (2026)",
+    h1: "Etsy Fee Calculator",
+    sub: "Work out Etsy's 6.5% transaction fee, payment processing, listing and Offsite Ads fees, and what you actually keep in USD.",
+    desc: "Free Etsy fee calculator for US sellers. Transaction fee, payment processing, $0.20 listing fee, Offsite Ads at 12% or 15%, regulatory operating fee and true net profit in USD.",
+    faq: "How Etsy fees work in 2026",
+  },
+  {
     cfg: "uk",
     flag: "🇬🇧",
     slug: "uk-ebay-fee-calculator",
@@ -169,6 +191,61 @@ const FAQ = {
        "This is an estimate based on the published eBay.ca fee schedule for 2026. Category rates vary, Store discounts differ by tier, and eBay adjusts its schedule periodically. Confirm the exact rate for your category on eBay.ca before pricing stock."],
     ],
   },
+  au: {
+    body: `
+    <p class="lead-sm">eBay Australia changed how fees work in May 2026. Store subscriptions became <b>Pro plans</b>, and the rate you pay now depends on <b>both</b> your plan and your category tier. On top of that there is <b>free selling</b>, which can take your transaction fees to zero.</p>
+    <ul style="margin:10px 0 0 20px;font-size:14px;color:#475569">
+      <li><b>Final value fee:</b> 13.4% on Pro Starter for most categories up to A$4,000, then 2.5% above.</li>
+      <li><b>Per-order fee:</b> A$0.30, flat &mdash; not the sliding scale used in the US and Canada.</li>
+      <li><b>GST:</b> 10%, already inside the rates. Registered with an ABN? eBay charges you net of GST.</li>
+      <li><b>International sales fee:</b> 3% since May 2026 &mdash; the highest of the four countries.</li>
+      <li><b>Regulatory operating fee:</b> none in Australia.</li>
+      <li><b>Insertion fee:</b> 250,000 free listings per month.</li>
+    </ul>`,
+    items: [
+      ["What is free selling on eBay Australia?",
+       "If you have an Australian address, no Pro plan, and have sold under A$25,000 in the past 12 months, your transaction fees are zero. You still pay the per-order fee. It is worth checking whether you qualify before paying for a Pro plan."],
+      ["Is GST included in the fee rate?",
+       "Yes, unlike the UK where VAT is charged on top. The 13.4% figure already contains 10% GST. If you are GST-registered and have an ABN, eBay charges you net of GST, so your effective fee is about 9% lower &mdash; choose the second option in the GST list to see it."],
+      ["How do Pro plans change my rate?",
+       "The plan and the category tier multiply out. A Pro Anchor seller in Tier 1 pays around 6.8%, against 13.4% for the same item on Pro Starter. But the plan costs A$604.95 a month, so it only pays off at high volume."],
+      ["Which tier is my category in?",
+       "Tier 1 covers home appliances and technology devices, and gets the lowest rates. Tier 4 covers fashion, collectables, media, sporting goods and tech accessories, and pays the most. Tiers 2 and 3 sit in between. Confirm your category's tier in Seller Hub &mdash; this calculator's Tier 2 and Tier 3 figures are estimates within the published range."],
+      ["Does Australia charge a regulatory operating fee?",
+       "No. Unlike the US and UK at 0.35% each, eBay Australia adds nothing on top of the final value fee."],
+      ["How much does eBay Australia take from a A$100 sale?",
+       "On Pro Starter in a 13.4% category: A$13.40 in final value fee plus the A$0.30 per-order fee, so about A$13.70 before your item and postage costs. Those rates already include GST."],
+      ["How accurate are these numbers?",
+       "Pro Starter rates, Tier 1 and Tier 4 plan rates, the 3% international fee and 10% GST are published figures. Tier 2 and Tier 3 rates are estimates interpolated within eBay's published range. Confirm your exact category rate in Seller Hub before pricing stock."],
+    ],
+  },
+  "etsy-us": {
+    body: `
+    <p class="lead-sm">Etsy charges four separate things on a sale, and they are calculated on <b>two different bases</b>. The transaction fee ignores sales tax; the payment processing fee includes it. That split is where most back-of-the-envelope maths goes wrong.</p>
+    <ul style="margin:10px 0 0 20px;font-size:14px;color:#475569">
+      <li><b>Listing fee:</b> $0.20 per listing, valid 4 months. Renewed or sold, it is charged again.</li>
+      <li><b>Transaction fee:</b> 6.5% of item price + shipping (sales tax excluded).</li>
+      <li><b>Payment processing:</b> 3% + $0.25 in the US, charged on the total <i>including</i> sales tax.</li>
+      <li><b>Offsite Ads:</b> 15% under $10,000/yr (optional), 12% above (mandatory), capped at $100 per sale.</li>
+      <li><b>Regulatory operating fee:</b> applies in some regions. Conflicting figures are published for US sellers, so it is a dropdown here &mdash; check your bill for the real number.</li>
+    </ul>`,
+    items: [
+      ["How much does Etsy take from a $50 sale?",
+       "Roughly $3.25 transaction fee, plus about $1.75 in payment processing, plus the $0.20 listing fee if this is a fresh listing. Around $5.20 before your own costs, so just over 10%."],
+      ["Is sales tax included in the 6.5% transaction fee?",
+       "No. The transaction fee is charged on the item price plus shipping only. Sales tax is excluded. But the payment processing fee does include sales tax, so a higher tax rate raises your processing fee even though the money never reaches you."],
+      ["What is the Offsite Ads fee?",
+       "If Etsy brings you a buyer through off-platform advertising, you pay a fee on that sale: 15% if your shop made under $10,000 in the past year, or 12% if over. Above $10,000 it becomes mandatory. Either way it is capped at $100 per order."],
+      ["Why is there a regulatory operating fee option?",
+       "Etsy charges it in certain regions to cover local compliance costs. Published figures for US sellers conflict, so this calculator lets you pick 0%, 0.25% or 0.8% — check your payment account for the rate that actually applies to you."],
+      ["Does Etsy charge a fee on shipping?",
+       "Yes. The 6.5% transaction fee applies to what the buyer pays for shipping as well as the item price. Offer free shipping and you shift that cost into your item price — the fee still applies to whatever you charge."],
+      ["Do I get the listing fee back if it does not sell?",
+       "No. The $0.20 is charged when you publish, and again on each renewal or each sale. A listing that never sells still cost you $0.20 every four months while it stays active."],
+      ["How accurate are these numbers?",
+       "Listing, transaction and processing fees are Etsy's published rates. The regulatory operating fee varies by region and published figures conflict for US sellers, so it is left as a dropdown. Currency conversion at 2.5% and the Offsite Ads $100 cap are also included."],
+    ],
+  },
   uk: {
     body: `
     <p class="lead-sm">eBay UK runs two completely separate fee tracks, and which one you are on changes everything. Since October 2024, private sellers resident in the UK pay <b>no final value fee</b> on most categories. Business sellers pay a category rate plus a per-order charge, a regulatory operating fee, and 20% VAT on top of every fee.</p>
@@ -217,12 +294,12 @@ function build(site) {
   rep("__CUR__", cfg.currency);
   rep("__H1__", site.h1);
   rep("__SUB__", site.sub);
+  rep("__SITENAME__", "Seller Fee Calculators");
   rep("__UPDATED__", cfg.updated);
   rep("__SYM__", cfg.symbol);
   rep("__SHIPCH_LABEL__", cfg.copy.shipLabel);
   rep("__COST_LABEL__", cfg.copy.costLabel);
   rep("__SHIPCOST_LABEL__", cfg.copy.shipCostLabel);
-  rep("__STORELABEL__", cfg.id === "uk" ? "Shop subscription" : "Store subscription");
   rep("__FAQH2__", site.faq);
 
   // 面包屑：回首页 + 同族工具快速切换
@@ -237,6 +314,31 @@ function build(site) {
   // 费用上征收的税，两种形态由 config 决定渲染成哪种控件：
   //   feeTax   → 多档下拉（加拿大 GST/HST 按省 5%~15%）
   //   vatOnFees → 单一开关（英国 VAT 20%）
+  rep("__ETSYBOX__", cfg.etsy
+    ? `<div><label>Offsite Ads sale?</label><select id="s_ads"></select></div>`
+      + `<div><label>Regulatory operating fee</label><select id="s_reg"></select></div>`
+      + `<div><label>Sales tax collected (%)</label><input type="number" id="s_taxpct" value="0" step="0.01" min="0" max="30">`
+      + `<div class="hint">Etsy collects it for you. It never reaches you, but it does increase the payment processing fee.</div></div>`
+    : "");
+  rep("__STOREBOX__", cfg.etsy
+    ? ""
+    : `<div><label>eBay ${cfg.id === "uk" ? "Shop" : "Store"} subscription</label><select id="s_store"></select></div>`);
+  rep("__SBIZROW__", cfg.etsy ? "" : `<div><label>Seller type</label><select id="s_biz"></select></div>`);
+  rep("__ADLABEL__", cfg.etsy ? "Etsy Ads rate (%)" : "Promoted Listings ad rate (%)");
+  rep("__STORELABEL__", cfg.etsy ? "Offsite Ads band" : `eBay ${cfg.storeLabel || "Store"}`);
+  rep("__BRAND__", cfg.etsy ? "Etsy" : "eBay");
+  rep("__CATLABEL__", cfg.etsy ? "Listing category" : "Category");
+  rep("__CATHINT__", cfg.etsy ? "Standard or regulated category" : "Fee rate applied to the sale");
+  rep("__INSERTBOX__", cfg.etsy
+    ? `<div><label>Listing fee</label><select id="s_insert"></select>`
+      + `<div class="hint">$0.20 per listing, charged again on every renewal.</div></div>`
+    : `<div><label>Insertion fee applies?</label><select id="s_insert"></select></div>`);
+  rep("__BSTOREBOX__", cfg.etsy
+    ? ""
+    : `<div><label>eBay ${cfg.id === "uk" ? "Shop" : "Store"} subscription</label><select id="b_store"></select></div>`);
+  rep("__BBIZROW__", cfg.etsy ? "" : `<div><label>Seller type</label><select id="b_biz"></select></div>`);
+  rep("__BINTLBOX__", `<div><label>${cfg.etsy ? "Buyer currency" : "Buyer location"}</label><select id="b_intl"></select></div>`);
+  rep("__INTLBOX__", `<div><label>${cfg.etsy ? "Buyer currency" : "Buyer location"}</label><select id="s_intl"></select></div>`);
   rep("__FEETAXBOX__", cfg.feeTax
     ? `<div><label>Tax on eBay fees</label><select id="s_tax"></select>`
       + `<div class="hint">GST/HST applies to the fees themselves, not just the sale.</div></div>`
@@ -244,11 +346,21 @@ function build(site) {
       ? `<div class="vat-box"><input type="checkbox" id="s_vat" checked>`
         + `<label for="s_vat" style="margin:0">Include ${cfg.vatOnFees.rate}% VAT on fees `
         + `<span class="hint">untick if you are VAT-registered</span></label></div>`
-      : ""));
+      : (cfg.gst
+        ? `<div><label>${cfg.gst.label} on fees</label><select id="s_gst"></select>`
+          + `<div class="hint">Rates already include ${cfg.gst.rate}% ${cfg.gst.label}.</div></div>`
+        : "")));
 
   // 反向定价区必须与正向用同一套开关，否则推出的价格预留不足
+  rep("__RETSYBOX__", cfg.etsy
+    ? `<div><label>Offsite Ads sale?</label><select id="r_ads"></select></div>`
+      + `<div><label>Regulatory operating fee</label><select id="r_reg"></select></div>`
+    : "");
   rep("__RBIZBOX__", cfg.sellerTypes && cfg.sellerTypes.length > 1
     ? `<div><label>Seller type</label><select id="r_biz"></select></div>`
+    : "");
+  rep("__RSTOREBOX__", cfg.plans
+    ? `<div><label>Seller plan</label><select id="r_store"></select></div>`
     : "");
   rep("__RVATBOX__", cfg.feeTax
     ? `<div><label>Tax on eBay fees</label><select id="r_tax"></select></div>`
@@ -256,7 +368,9 @@ function build(site) {
       ? `<div><label>Include ${cfg.vatOnFees.rate}% VAT on fees</label>`
         + `<select id="r_vat"><option value="1">Yes</option>`
         + `<option value="0">No (VAT-registered)</option></select></div>`
-      : ""));
+      : (cfg.gst
+        ? `<div><label>${cfg.gst.label} on fees</label><select id="r_gst"></select></div>`
+        : "")));
 
   // 站点专属提示
   // 站点内链：让同族工具互相引流，形成内容集群
@@ -313,8 +427,8 @@ function buildExtras() {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>eBay Fee Calculators — US, Canada &amp; UK</title>
-<meta name="description" content="Free eBay fee calculators for US and UK sellers. Work out final value fees, per-order charges and your real net profit before you list.">
+<title>Seller Fee Calculators — eBay &amp; Etsy</title>
+<meta name="description" content="Free seller fee calculators for eBay (US, Canada, Australia, UK) and Etsy. Work out transaction, processing and ad fees, and your real net profit before you list.">
 <link rel="canonical" href="${B}/">
 ${gaSnippet()}${adsSnippet() ? "\n" + adsSnippet() : ""}
 <style>${R("src/ui/styles.css")}
@@ -330,13 +444,13 @@ ${gaSnippet()}${adsSnippet() ? "\n" + adsSnippet() : ""}
 </head>
 <body>
 ${flagDefs(SITES.map((x) => x.cfg))}
-<header><h1>eBay Fee Calculators</h1><p>Work out what eBay takes and what you actually keep.</p></header>
+<header><h1>Seller Fee Calculators</h1><p>Work out what the marketplace takes and what you actually keep.</p></header>
 <div class="wrap">
   <div class="card"><h2>Calculators</h2><ul class="xlinks">${cards}</ul></div>
 
   <footer>
     <a href="/about">About</a> · <a href="/privacy">Privacy</a> · <a href="/contact">Contact</a>
-    <div class="fnote">Free eBay fee calculators · No sign-up · Your data stays in your browser</div>
+    <div class="fnote">Free seller fee calculators · No sign-up · Your data stays in your browser</div>
   </footer>
 </div>
 </body>

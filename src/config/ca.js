@@ -11,6 +11,7 @@
  */
 
 export default {
+  storeLabel: "Store subscription",
   id: "ca",
   name: "Canada",
   symbol: "C$",
