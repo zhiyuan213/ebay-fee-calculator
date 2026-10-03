@@ -44,13 +44,23 @@ for (const rel of files) {
   const page = await browser.newPage();
 
   const errors = [];
-  page.on('pageerror', (e) => errors.push(String(e)));
-  page.on('console', (m) => { if (m.type() === 'error') errors.push(m.text()); });
+  const netNoise = [];
+  // 第三方脚本（GA / AdSense）在本地 file:// 下必然加载失败，
+  // 且未授权的 AdSense client 会被 CORS 拒绝 —— 这类不算页面缺陷
+  const isThirdParty = (t) => /googletagmanager|gtag|pagead2|adsbygoogle|CORS|ERR_FAILED|net::/.test(t);
+  page.on('pageerror', (e) => (isThirdParty(String(e)) ? netNoise : errors).push(String(e)));
+  page.on('console', (m) => {
+    if (m.type() !== 'error') return;
+    (isThirdParty(m.text()) ? netNoise : errors).push(m.text());
+  });
 
   await page.goto('file://' + file);
   await page.waitForTimeout(300);
 
   check('无 JS 运行时错误', errors.length === 0, errors.join(' | ') || '无');
+  if (netNoise.length) {
+    console.log(`  INFO  ${netNoise.length} 条第三方脚本告警（本地 file:// 下的预期现象，线上无此问题）`);
+  }
 
   // 1. 单件模式
   const kpis = await page.$$eval('#s_res .kpi .v', (els) => els.map((e) => e.textContent));
@@ -124,20 +134,60 @@ for (const rel of files) {
   check('FAQ >= 3 条', faqCount >= 3, `${faqCount} 条`);
   check('有费率更新日期', /updated|reviewed/i.test(bodyHtml));
 
-  // 7.5 面包屑回首页
+  // 7.5 回首页入口：面包屑 + 底部按钮，两处都必须存在且指向首页
   const homeHref = await page.getAttribute('.crumb a', 'href');
-  check('有回首页链接', !!homeHref && !/example\.com/.test(homeHref || '') || !!homeHref, homeHref || '无');
+  check('面包屑有回首页链接', !!homeHref, homeHref || '无');
   const crumbText = await page.textContent('.crumb');
   check('面包屑含当前页名', crumbText.length > 5, crumbText.replace(/\s+/g, ' ').trim().slice(0, 60));
+
+  const backBtn = await page.$('.backhome a');
+  check('底部有回首页按钮', backBtn !== null);
+  if (backBtn) {
+    const href = await backBtn.getAttribute('href');
+    const txt = (await backBtn.textContent()).replace(/\s+/g, ' ').trim();
+    check('底部按钮指向首页', /\/$/.test(href || ''), href || '无');
+    check('底部按钮文案可读', txt.length > 5, txt);
+    // 链接必须真的能点（不能是 # 或空）
+    check('底部按钮 href 有效', !!href && href !== '#', href || '无');
+  }
 
   // 8. 内链（矩阵集群）
   const xlinks = await page.$$eval('.xlinks a', (a) => a.map((x) => x.getAttribute('href')));
   check('有同族工具内链', xlinks.length >= 1, xlinks.join(' '));
 
-  // 9. 无阻塞外部依赖
-  const ext = await page.$$eval('script[src],link[rel="stylesheet"]',
-    (e) => e.map((x) => x.getAttribute('src') || x.getAttribute('href')));
-  check('无阻塞外部依赖', ext.length === 0, ext.join(',') || '无');
+  // 9. 外部依赖：除 GA 的 async 脚本外不应有任何阻塞渲染的资源
+  const all = await page.$$eval('script[src],link[rel="stylesheet"]',
+    (e) => e.map((x) => ({
+      u: x.getAttribute('src') || x.getAttribute('href'),
+      async: x.hasAttribute('async') || x.hasAttribute('defer'),
+    })));
+  const blocking = all.filter((x) => !x.async).map((x) => x.u);
+  check('无阻塞渲染的外部依赖', blocking.length === 0, blocking.join(',') || '无');
+
+  const ga = all.filter((x) => /googletagmanager|gtag/.test(x.u || ''));
+  if (ga.length) {
+    check('GA 脚本为 async 加载', ga.every((x) => x.async), `${ga.length} 个`);
+    const id = await page.evaluate(() => {
+      const m = document.documentElement.innerHTML.match(/gtag\('config',\s*'([^']+)'\)/);
+      return m ? m[1] : null;
+    });
+    check('GA config ID 正确', id === 'G-9TH6Q9RFEV', id || '未找到');
+  } else {
+    console.log('  INFO  未注入 GA（本次构建未设置 GA_ID）');
+  }
+
+  // 9.5 AdSense：验证脚本必须 async，且不能是同步阻塞
+  const ads = all.filter((x) => /pagead2|adsbygoogle/.test(x.u || ''));
+  if (ads.length) {
+    check('AdSense 脚本为 async 加载', ads.every((x) => x.async), `${ads.length} 个`);
+    const cli = await page.evaluate(() => {
+      const m = document.documentElement.innerHTML.match(/adsbygoogle\.js\?client=(ca-pub-\d+)/);
+      return m ? m[1] : null;
+    });
+    check('AdSense client ID 正确', cli === 'ca-pub-1590351261982793', cli || '未找到');
+  } else {
+    console.log('  INFO  未注入 AdSense（本次构建未设置 ADSENSE_CLIENT）');
+  }
 
   const canon = (await page.getAttribute('link[rel="canonical"]', 'href')) || '';
   if (/example\.com/.test(canon)) {
@@ -154,6 +204,15 @@ console.log('\n===== dist 静态资源 =====');
 for (const f of ['index.html', 'sitemap.xml', 'robots.txt']) {
   check(`存在 ${f}`, fs.existsSync(path.join(__dirname, 'dist', f)));
 }
+// ads.txt：AdSense 站点验证与广告合规都需要，且必须在根路径
+const adsTxtPath = path.join(__dirname, 'dist', 'ads.txt');
+if (fs.existsSync(adsTxtPath)) {
+  const at = fs.readFileSync(adsTxtPath, 'utf8').trim();
+  check('ads.txt 格式正确', /^google\.com,\s*pub-\d+,\s*DIRECT,\s*[a-f0-9]{16}$/.test(at), at);
+} else {
+  console.log('  INFO  未生成 ads.txt（未设置 ADSENSE_CLIENT）');
+}
+
 const sm = fs.readFileSync(path.join(__dirname, 'dist', 'sitemap.xml'), 'utf8');
 check('sitemap 含全部页面', (sm.match(/<loc>/g) || []).length === 4, `${(sm.match(/<loc>/g) || []).length} 条`);
 

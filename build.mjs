@@ -5,7 +5,8 @@
  * 用法：node build.mjs
  * 新增站点：在 SITES 里加一行
  */
-import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, rmSync } from "node:fs";
+import { flagDefs, flagUse } from "./src/ui/flags.js";
 import { fileURLToPath } from "node:url";
 import { dirname, join } from "node:path";
 
@@ -21,6 +22,44 @@ const R = (p) => readFileSync(join(__dirname, p), "utf8");
  */
 const BASE = (process.env.SITE_DOMAIN || "https://example.com").replace(/\/$/, "");
 const dom = (slug) => `${BASE}/${slug}`;
+
+/**
+ * Google Analytics 4 衡量 ID，形如 G-XXXXXXXXXX
+ * 未设置则不注入任何脚本 —— 本地构建保持零外部请求，便于自检
+ *   SITE_DOMAIN=https://basakit.com GA_ID=G-9TH6Q9RFEV node build.mjs
+ */
+const GA_ID = (process.env.GA_ID || "").trim();
+const GA_OK = /^G-[A-Z0-9]{6,}$/.test(GA_ID);
+
+/**
+ * AdSense：发布商 ID（ca-pub-XXXXXXXXXXXXXXXX）
+ * 未设置则不注入 —— 未通过审核前不要放广告位代码，只放验证脚本即可
+ *   ADSENSE_CLIENT=ca-pub-1590351261982793 node build.mjs
+ */
+const ADS = (process.env.ADSENSE_CLIENT || "").trim();
+const ADS_OK = /^ca-pub-\d{10,}$/.test(ADS);
+
+/**
+ * AdSense 验证脚本（head 内，async，不阻塞渲染）
+ * 注意：这只是"网站所有权验证"。真正展示广告还需要另放 <ins class="adsbygoogle">
+ */
+function adsSnippet() {
+  if (!ADS_OK) return "";
+  return `<script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=${ADS}" crossorigin="anonymous"></script>`;
+}
+
+function gaSnippet() {
+  if (!GA_OK) return "";
+  // async 加载：不阻塞渲染。放在 head 里但不参与首屏渲染路径
+  return `<!-- Google tag (gtag.js) -->
+<script async src="https://www.googletagmanager.com/gtag/js?id=${GA_ID}"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+  gtag('config', '${GA_ID}');
+</script>`;
+}
 
 const SITES = [
   {
@@ -190,7 +229,7 @@ function build(site) {
   const siblings = SITES.filter((x) => x.cfg !== site.cfg);
   rep("__SWITCHER__", siblings.length
     ? `<span class="switch">${siblings
-        .map((o) => `<a href="${o.domain}">${o.flag} ${o.h1.replace(/ eBay Fee Calculator/, "")}</a>`)
+        .map((o) => `<a href="${o.domain}">${flagUse(o.cfg, 18)} ${o.h1.replace(/ eBay Fee Calculator/, "")}</a>`)
         .join("")}</span>`
     : "");
 
@@ -223,7 +262,7 @@ function build(site) {
   const others = SITES.filter((x) => x.cfg !== site.cfg);
   rep("__CROSSLINKS__", others.length
     ? `<div class="card"><h2>Related calculators</h2><ul class="xlinks">${
-        others.map((o) => `<li><a href="${o.domain}">${o.title.replace(/ —.*$/, "")}</a><span>${o.sub}</span></li>`).join("")
+        others.map((o) => `<li><a href="${o.domain}"><span class="flag">${flagUse(o.cfg, 26)}</span>${o.title.replace(/ —.*$/, "")}</a><span>${o.sub}</span></li>`).join("")
       }</ul></div>`
     : "");
 
@@ -239,6 +278,11 @@ function build(site) {
     "</div>";
   rep("__FAQBODY__", faqHtml);
 
+  // 本页用到的国旗 symbol，只定义一次
+  const need = [site.cfg, ...SITES.filter((x) => x.cfg !== site.cfg).map((x) => x.cfg)];
+  rep("__FLAGDEFS__", flagDefs(need));
+
+  rep("__GA__", gaSnippet() + (adsSnippet() ? "\n" + adsSnippet() : ""));
   rep("__CSS__", CSS);
   rep("__CONFIG__", `window.__CFG__ = ${JSON.stringify(cfg, null, 0)};`);
   rep("__APP__", APP_BUNDLE);
@@ -259,7 +303,7 @@ function buildExtras() {
   // 首页：导航到各工具，同时作为根路径兜底（避免根路径 404）
   const cards = SITES.map(
     (x) => `<li>`
-      + `<a href="/${x.slug}"><span class="flag">${x.flag}</span>`
+      + `<a href="/${x.slug}"><span class="flag">${flagUse(x.cfg, 26)}</span>`
       + `${x.title.replace(/ —.*$/, "")}</a><span>${x.sub}</span></li>`
   ).join("");
 
@@ -268,9 +312,10 @@ function buildExtras() {
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>eBay Fee Calculators — US &amp; UK</title>
+<title>eBay Fee Calculators — US, Canada &amp; UK</title>
 <meta name="description" content="Free eBay fee calculators for US and UK sellers. Work out final value fees, per-order charges and your real net profit before you list.">
 <link rel="canonical" href="${B}/">
+${gaSnippet()}${adsSnippet() ? "\n" + adsSnippet() : ""}
 <style>${R("src/ui/styles.css")}
 .xlinks{list-style:none;margin:0;padding:0}
 .xlinks li{margin-bottom:14px;padding-bottom:14px;border-bottom:1px solid var(--line)}
@@ -283,6 +328,7 @@ function buildExtras() {
 </style>
 </head>
 <body>
+${flagDefs(SITES.map((x) => x.cfg))}
 <header><h1>eBay Fee Calculators</h1><p>Work out what eBay takes and what you actually keep.</p></header>
 <div class="wrap">
   <div class="card"><h2>Calculators</h2><ul class="xlinks">${cards}</ul></div>
@@ -311,6 +357,23 @@ ${urls
   writeFileSync(join(__dirname, "dist", "sitemap.xml"), sitemap, "utf8");
   console.log("✓ sitemap.xml");
 
+  // ads.txt：AdSense 也认这个做站点验证，且是广告合规要求
+  // 放在根目录，即 https://basakit.com/ads.txt
+  // 未配置 AdSense 时移除上一轮可能残留的 ads.txt，避免产物与配置不一致
+  if (!ADS_OK) {
+    const p = join(__dirname, "dist", "ads.txt");
+    if (existsSync(p)) rmSync(p);
+  }
+  if (ADS_OK) {
+    const pubId = ADS.replace(/^ca-pub-/, "");
+    writeFileSync(
+      join(__dirname, "dist", "ads.txt"),
+      `google.com, pub-${pubId}, DIRECT, f08c47fec0942fa0\n`,
+      "utf8"
+    );
+    console.log("✓ ads.txt");
+  }
+
   // robots.txt（指向 sitemap，便于 Google 抓取）
   writeFileSync(
     join(__dirname, "dist", "robots.txt"),
@@ -327,3 +390,7 @@ Sitemap: ${B}/sitemap.xml
 SITES.forEach(build);
 buildExtras();
 console.log("\ndist/ 已生成，可直接部署到 Cloudflare Pages。");
+console.log(GA_OK ? `GA4 已注入：${GA_ID}` : "GA4 未注入（未设置 GA_ID）");
+console.log(ADS_OK
+  ? `AdSense 已注入：${ADS}（验证脚本 + ads.txt）`
+  : "AdSense 未注入（未设置 ADSENSE_CLIENT）");

@@ -13,6 +13,8 @@ node build.mjs          # 构建，产物在 dist/
 node verify.mjs         # 真实浏览器自检（Playwright + Chromium）
 ```
 
+本地不设 `GA_ID` 时，产物保持零外部请求（便于自检与离线预览）。
+
 产物是单文件 HTML，双击即可本地打开。
 
 ---
@@ -43,6 +45,24 @@ SITE_DOMAIN = https://你的域名.pages.dev
 ```bash
 SITE_DOMAIN=https://yourdomain.com node build.mjs
 ```
+
+**可选：注入 Google Analytics 4 / AdSense**
+
+```
+GA_ID          = G-XXXXXXXXXX
+ADSENSE_CLIENT = ca-pub-XXXXXXXXXXXXXXXX
+```
+
+两者都只在设置了对应变量时才注入，未设置则产物保持零外部请求。脚本均为 `async`，不阻塞渲染。
+设置 `ADSENSE_CLIENT` 还会自动生成 `dist/ads.txt`（AdSense 站点验证与广告合规都需要，位于根路径）。
+
+**可选：注入 Google Analytics 4**
+
+```
+GA_ID = G-XXXXXXXXXX
+```
+
+设置了才注入脚本，未设置则产物保持零外部请求。脚本为 `async` 加载，不阻塞渲染。
 
 > 每次改费率后请同步改 `src/config/*.js` 里的 `updated` 字段——页面会显示这个日期，用户靠它判断数据新鲜度，Google 也会因内容变动重新抓取。
 
